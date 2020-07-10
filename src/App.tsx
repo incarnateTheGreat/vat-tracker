@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactMapGL, { FlyToInterpolator, Marker, Popup } from "react-map-gl";
 import useSupercluster from "use-supercluster";
-import { getVatsimData } from "./api/api";
+import polyline from "@mapbox/polyline";
+import { getDecodedFlightRoute, getVatsimData } from "./api/api";
 import { ICluster, IViewport, IFlight } from "./declaration/interface";
 import { getTypeOfAircraft, getTypeOfAircraftSelected } from "./helpers/utils";
 
@@ -15,6 +16,7 @@ function App() {
     zoom: 1,
   });
   const [flightData, setFlightData] = useState<IFlight[]>([]);
+  const [flightRoute, setFlightRoute] = useState<number[]>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
   const [displayPopup, setDisplayPopup] = useState<ICluster | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<ICluster | null>(null);
@@ -104,7 +106,10 @@ function App() {
           </div>
           <div
             className="flight-data-close"
-            onClick={() => setSelectedFlight(null)}
+            onClick={() => {
+              setSelectedFlight(null);
+              removeRoute();
+            }}
           >
             X
           </div>
@@ -221,6 +226,56 @@ function App() {
     console.log(isStillSelected);
   }, [clusterData]);
 
+  // Remove the Waypoints of the Selected Flight.
+  const removeRoute = () => {
+    const map = mapRef.current.getMap();
+
+    if (map.getLayer("route")) {
+      map.removeLayer("route").removeSource("route");
+    }
+  };
+
+  // Draw the Waypoints of the Selected Flight.
+  const drawRoute = (flightCoordinates) => {
+    const map = mapRef.current.getMap();
+
+    removeRoute();
+
+    if (flightCoordinates) {
+      const coordinates = flightCoordinates.reduce((r, acc) => {
+        const [latitude, longitude] = acc;
+
+        r.push([longitude, latitude]);
+
+        return r;
+      }, []);
+
+      map.addLayer({
+        id: "route",
+        type: "line",
+        source: {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates,
+            },
+          },
+        },
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#888",
+          "line-width": 3,
+        },
+      });
+    }
+  };
+
   return (
     <ReactMapGL
       {...viewport}
@@ -248,6 +303,11 @@ function App() {
               <div
                 className="cluster-marker"
                 onClick={handleClusterClick(clusterObj, latitude, longitude)}
+                onMouseOver={() => {
+                  console.log(
+                    supercluster.getChildren(clusterObj.properties.cluster_id)
+                  );
+                }}
                 style={{
                   width: `${10 + (pointCount / clusterData.length) * 20}px`,
                   height: `${10 + (pointCount / clusterData.length) * 20}px`,
@@ -268,10 +328,32 @@ function App() {
           >
             <img
               onClick={(e) => {
+                const {
+                  planned_depairport,
+                  planned_route,
+                  planned_destairport,
+                } = clusterObj.properties;
                 e.preventDefault();
 
                 if (!clusterObj.properties.isController) {
                   setSelectedFlight(clusterObj);
+
+                  const getRoute = async () => {
+                    const res = await getDecodedFlightRoute(
+                      planned_depairport,
+                      planned_route,
+                      planned_destairport
+                    );
+
+                    if (res.encodedPolyline) {
+                      setFlightRoute(polyline.decode(res.encodedPolyline));
+                      drawRoute(polyline.decode(res.encodedPolyline));
+                    } else {
+                      drawRoute(null);
+                    }
+                  };
+
+                  getRoute();
                 }
               }}
               onMouseOver={() => {
@@ -302,11 +384,8 @@ function App() {
           }}
         />
       </div> */}
-
       {displayFlightDataView()}
-
       {/* const [longitude, latitude] = clusterObj.geometry.coordinates; */}
-
       {displayPopupDataView()}
     </ReactMapGL>
   );

@@ -12,6 +12,7 @@
   "private": true,
   "dependencies": {
     "@babel/core": "7.9.0",
+    "@mapbox/polyline": "^1.1.1",
     "@svgr/webpack": "4.3.3",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
@@ -33,6 +34,7 @@
     "cors": "^2.8.5",
     "cross-env": "^7.0.2",
     "css-loader": "3.4.2",
+    "deck.gl": "^8.2.2",
     "dotenv": "8.2.0",
     "dotenv-expand": "5.1.0",
     "electron-is-dev": "^1.2.0",

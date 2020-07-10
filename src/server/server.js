@@ -77,8 +77,6 @@ app.listen(8000, () => {
 app.route("/api/vatsim-data").get((req, res) => {
   // Get random path to avoid hitting the same VATSIM server over and over.
   const vatsim_path = "http://us.data.vatsim.net/vatsim-data.txt";
-  // const vatsim_path =
-  //   VATSIM_SERVERS[Math.floor(Math.random() * VATSIM_SERVERS.length)];
 
   console.log("------------------------------------------------------------");
   console.log("Get VATSIM Data...");
@@ -209,32 +207,32 @@ app.route("/api/vatsim-data").get((req, res) => {
 //   );
 // });
 
-// // TODO: DECIDE WHETHER OR NOT TO KEEP THIS.
-// app.use("/api/decodeRoute", (req, res) => {
-//   const { origin, route, destination } = req.query;
+// TODO: DECIDE WHETHER OR NOT TO KEEP THIS.
+app.use("/api/decodeRoute", (req, res) => {
+  const { origin, route, destination } = req.query;
 
-//   // Join strings together, remove commas and replace them with spaces.
-//   const routeStr = [origin, route, destination]
-//     .join(",")
-//     .match(/[^ ,]+/g)
-//     .join(" ");
+  // Join strings together, remove commas and replace them with spaces.
+  const routeStr = [origin, route, destination]
+    .join(",")
+    .match(/[^ ,]+/g)
+    .join(" ");
 
-//   const options = {
-//     url: "https://api.flightplandatabase.com/auto/decode",
-//     method: "POST",
-//     form: { route: routeStr },
-//     headers: {
-//       Authorization: "Basic EEX0ovsK0oa4SDYT1g4XqOOZEnKvU6e9yj0ZhX9Q",
-//     },
-//   };
+  const options = {
+    url: "https://api.flightplandatabase.com/auto/decode",
+    method: "POST",
+    form: { route: routeStr },
+    headers: {
+      Authorization: "Basic EEX0ovsK0oa4SDYT1g4XqOOZEnKvU6e9yj0ZhX9Q",
+    },
+  };
 
-//   // ****** DEVELOPMENT USE ONLY! REMOVE WHEN IN PRODUCTION *******
-//   process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+  // ****** DEVELOPMENT USE ONLY! REMOVE WHEN IN PRODUCTION *******
+  process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-//   request(options, (error, response, body) => {
-//     body ? res.send(body) : res.send(null);
-//   });
-// });
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
 
 // app.use(
 //   "/graphql/fir",
