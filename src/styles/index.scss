@@ -27,6 +27,10 @@ body {
   &:hover {
     background-color: #135994;
   }
+
+  &-active {
+    background-color: #de3a1f;
+  }
 }
 
 .flight-data {

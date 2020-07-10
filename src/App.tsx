@@ -120,6 +120,17 @@ function App() {
     return <div className="flight-data"></div>;
   };
 
+  const indicateFlightInCluster = (clusterObj) => {
+    const flightsInClusters = supercluster.getLeaves(
+      clusterObj.properties.cluster_id,
+      Infinity
+    );
+
+    return flightsInClusters.find((flight: ICluster) => {
+      return flight.properties.callsign === selectedFlight?.properties.callsign;
+    });
+  };
+
   const displayPopupDataView = () => {
     if (displayPopup) {
       const {
@@ -301,13 +312,12 @@ function App() {
               longitude={longitude}
             >
               <div
-                className="cluster-marker"
+                className={`cluster-marker ${
+                  indicateFlightInCluster(clusterObj)
+                    ? "cluster-marker-active"
+                    : ""
+                }`}
                 onClick={handleClusterClick(clusterObj, latitude, longitude)}
-                onMouseOver={() => {
-                  console.log(
-                    supercluster.getChildren(clusterObj.properties.cluster_id)
-                  );
-                }}
                 style={{
                   width: `${10 + (pointCount / clusterData.length) * 20}px`,
                   height: `${10 + (pointCount / clusterData.length) * 20}px`,
