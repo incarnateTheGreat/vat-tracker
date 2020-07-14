@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import ReactMapGL, { FlyToInterpolator, Marker, Popup } from "react-map-gl";
+import ReactMapGL, {
+  FlyToInterpolator,
+  Marker,
+  NavigationControl,
+  Popup,
+} from "react-map-gl";
 import useSupercluster from "use-supercluster";
+import * as d3 from "d3-ease";
 import polyline from "@mapbox/polyline";
 import { getDecodedFlightRoute, getVatsimData } from "./api/api";
 import { ICluster, IViewport, IFlight } from "./declaration/interface";
@@ -23,17 +29,19 @@ function App() {
   const [flightSearch, setFlightSearch] = useState<string>("");
   const mapRef = useRef<any>(null);
 
+  // Get the Data from the API Service.
   const handleGetData = () => {
     getVatsimData().then((data) => {
       if (Object.keys(data).length > 0) {
         setFlightData(data.flights);
 
-        massageData(data.flights);
+        assembleClusterData(data.flights);
       }
     });
   };
 
-  const massageData = (data) => {
+  // In order to display the Flights with Clustering, objects need to be created to assist with using Supercluster.
+  const assembleClusterData = (data) => {
     const clusterFlights = data.map((flight: IFlight) => {
       return {
         type: "Feature",
@@ -51,6 +59,7 @@ function App() {
     setClusterData(clusterFlights);
   };
 
+  // Click on a Cluster and zoom in to its active children.
   const handleClusterClick = (
     clusterObj: ICluster,
     latitude: number,
@@ -67,18 +76,15 @@ function App() {
       longitude,
       zoom: expansionZoom,
       transitionInterpolator: new FlyToInterpolator({
-        speed: 1,
+        speed: 1.5,
       }),
-      transitionDuration: "auto",
+      transitionDuration: 500,
     });
   };
 
+  // View a Flight's details.
   const displayFlightDataView = () => {
-    // If a Flight goes Offline, we need to disable Flight Data View.
-    const isStillSelected = flightData.find(
-      (flight: IFlight) =>
-        selectedFlight?.properties.callsign === flight.callsign
-    );
+    const isStillSelected = checkStillActive();
 
     if (selectedFlight && isStillSelected) {
       const {
@@ -90,7 +96,7 @@ function App() {
         altitude,
         heading,
         groundspeed,
-      } = selectedFlight.properties;
+      } = isStillSelected;
 
       return (
         <div className="flight-data flight-data-enabled">
@@ -101,7 +107,7 @@ function App() {
             <div>{planned_destairport}</div>
             <div>{planned_aircraft}</div>
             <div>{altitude} FT.</div>
-            <div>{heading}</div>
+            <div>{heading}&deg;</div>
             <div>{groundspeed} kts</div>
           </div>
           <div
@@ -120,6 +126,7 @@ function App() {
     return <div className="flight-data"></div>;
   };
 
+  // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
   const indicateFlightInCluster = (clusterObj) => {
     const flightsInClusters = supercluster.getLeaves(
       clusterObj.properties.cluster_id,
@@ -131,6 +138,7 @@ function App() {
     });
   };
 
+  // Hover over a Flight to get its details.
   const displayPopupDataView = () => {
     if (displayPopup) {
       const {
@@ -196,18 +204,35 @@ function App() {
     return aircraftType;
   };
 
+  // Get the Bounds of the Map.
   const bounds =
     mapRef && mapRef.current
       ? mapRef.current.getMap().getBounds().toArray().flat()
       : null;
 
+  // Assign the Cluster Data, Bounds, Zoom, and other Options to Superclister.
   const { clusters, supercluster } = useSupercluster({
     points: clusterData,
     bounds,
     zoom: viewport.zoom,
-    options: { radius: 75, maxZoom: 8 },
+    options: { radius: 75, maxZoom: 10 },
   });
 
+  const goToNYC = () => {
+    const viewportNYC = {
+      ...viewport,
+      longitude: -74.1,
+      latitude: 40.7,
+      zoom: 14,
+      transitionDuration: 2000,
+      transitionInterpolator: new FlyToInterpolator(),
+      transitionEasing: d3.easeQuad,
+    };
+
+    setViewport(viewportNYC);
+  };
+
+  // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
     handleGetData();
 
@@ -218,6 +243,7 @@ function App() {
     const listener = (e) => {
       if (e.key === "Escape") {
         setSelectedFlight(null);
+        drawRoute(null);
       }
     };
 
@@ -228,13 +254,19 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    const isStillSelected = flightData.find(
+  // Check if Selected Flight is still selected.
+  const checkStillActive = () => {
+    return flightData.find(
       (flight: IFlight) =>
         selectedFlight?.properties.callsign === flight.callsign
     );
+  };
 
-    console.log(isStillSelected);
+  useEffect(() => {
+    if (!checkStillActive()) {
+      setSelectedFlight(null);
+      drawRoute(null);
+    }
   }, [clusterData]);
 
   // Remove the Waypoints of the Selected Flight.
@@ -243,6 +275,26 @@ function App() {
 
     if (map.getLayer("route")) {
       map.removeLayer("route").removeSource("route");
+    }
+  };
+
+  // Get the Route data to draw on the screen.
+  const getRoute = async (
+    planned_depairport,
+    planned_route,
+    planned_destairport
+  ) => {
+    const res = await getDecodedFlightRoute(
+      planned_depairport,
+      planned_route,
+      planned_destairport
+    );
+
+    if (res.encodedPolyline) {
+      setFlightRoute(polyline.decode(res.encodedPolyline));
+      drawRoute(polyline.decode(res.encodedPolyline));
+    } else {
+      drawRoute(null);
     }
   };
 
@@ -280,7 +332,7 @@ function App() {
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#888",
+          "line-color": "#de3a1f",
           "line-width": 3,
         },
       });
@@ -297,6 +349,9 @@ function App() {
       }}
       ref={mapRef}
     >
+      <div className="navigation-control">
+        <NavigationControl />
+      </div>
       {clusters.map((clusterObj: ICluster) => {
         const [longitude, latitude] = clusterObj.geometry.coordinates;
         const {
@@ -348,22 +403,11 @@ function App() {
                 if (!clusterObj.properties.isController) {
                   setSelectedFlight(clusterObj);
 
-                  const getRoute = async () => {
-                    const res = await getDecodedFlightRoute(
-                      planned_depairport,
-                      planned_route,
-                      planned_destairport
-                    );
-
-                    if (res.encodedPolyline) {
-                      setFlightRoute(polyline.decode(res.encodedPolyline));
-                      drawRoute(polyline.decode(res.encodedPolyline));
-                    } else {
-                      drawRoute(null);
-                    }
-                  };
-
-                  getRoute();
+                  getRoute(
+                    planned_depairport,
+                    planned_route,
+                    planned_destairport
+                  );
                 }
               }}
               onMouseOver={() => {
@@ -394,8 +438,13 @@ function App() {
           }}
         />
       </div> */}
+      {
+        <button type="button" onClick={goToNYC}>
+          NYC!
+        </button>
+      }
       {displayFlightDataView()}
-      {/* const [longitude, latitude] = clusterObj.geometry.coordinates; */}
+
       {displayPopupDataView()}
     </ReactMapGL>
   );

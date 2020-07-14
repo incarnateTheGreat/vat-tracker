@@ -42,7 +42,7 @@ body {
   margin-left: -44%;
   padding: 10px;
   transition: 0.2s ease-in-out;
-  width: 40%;
+  width: 20%;
 
   &-enabled {
     margin-left: 0;
@@ -51,4 +51,11 @@ body {
   &-close {
     cursor: pointer;
   }
+}
+
+.navigation-control {
+  cursor: pointer;
+  left: 10px;
+  top: 10px;
+  position: absolute;
 }
