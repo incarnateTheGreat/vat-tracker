@@ -5,13 +5,16 @@ import ReactMapGL, {
   Marker,
   NavigationControl,
 } from "react-map-gl";
+import mapboxgl from "mapbox-gl";
 import useSupercluster from "use-supercluster";
 // import * as d3 from "d3-ease";
 import polyline from "@mapbox/polyline";
+
 import { getDecodedFlightRoute, getVatsimData, getWeather } from "./api/api";
 import { ICluster, IViewport, IFlight } from "./declaration/app";
 import {
   assembleClusterData,
+  drawWeatherLayer,
   getTypeOfAircraft,
   getTypeOfAircraftSelected,
 } from "./helpers/utils";
@@ -21,8 +24,9 @@ function App() {
     latitude: 43.7147326,
     longitude: -79.2541669,
     maxZoom: 20,
-    width: "100vw",
+    // width: "100vw",
     height: "100vh",
+    width: "100%",
     zoom: 1,
   });
   const [flightData, setFlightData] = useState<IFlight[]>([]);
@@ -35,7 +39,7 @@ function App() {
   const [latestWeatherTimestamp, setLatestWeatherTimestamp] = useState<
     number | null
   >(null);
-  // const [flightSearch, setFlightSearch] = useState<string>("");
+  const [flightSearch, setFlightSearch] = useState<string>("");
   const mapRef = useRef<any>(null);
 
   // Get the Data from the API Service.
@@ -125,14 +129,39 @@ function App() {
             toggleNavigationMenu ? "navigation-menu-enabled" : ""
           }`}
         >
-          <h2>Vat-Tracker</h2>
-          <div></div>
-          <div
-            className="navigation-menu-close"
-            onClick={() => setToggleNavigationMenu(false)}
-          >
-            X
+          <div className="navigation-menu-top">
+            <h2>Vat-Tracker</h2>
+            <div
+              className="navigation-menu-close"
+              onClick={() => setToggleNavigationMenu(false)}
+            >
+              X
+            </div>
           </div>
+
+          <nav className="navigation-menu-links">
+            <input
+              className="search"
+              name="flightSearch"
+              type="text"
+              value={flightSearch}
+              onChange={(e) => {
+                setFlightSearch(e.target.value.toUpperCase());
+              }}
+              onKeyUp={(e) => {
+                if (e.key === "Enter") {
+                  const res = clusterData.find(
+                    (flight: ICluster) =>
+                      flight.properties.callsign === flightSearch
+                  );
+
+                  if (res) {
+                    selectFlight(res);
+                  }
+                }
+              }}
+            />
+          </nav>
         </div>
       );
     }
@@ -276,6 +305,25 @@ function App() {
           "line-width": 3,
         },
       });
+
+      // const [first, last] = [
+      //   coordinates[0],
+      //   coordinates[coordinates.length - 1],
+      // ];
+
+      // console.log(first, last);
+
+      // map.fitBounds([first, last]);
+
+      // const bounds = coordinates.reduce(function (bounds, coord) {
+      //   return bounds.extend(coord);
+      // }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+
+      // map.fitBounds(bounds, {
+      //   padding: 20,
+      // });
+
+      // console.log(bounds);
     }
   }, []);
 
@@ -283,6 +331,7 @@ function App() {
     async (isInit = false) => {
       const map = mapRef.current.getMap();
 
+      // Get the latest Weather Data Epoch Timestamps.
       const latestWeatherData: number[] = await getWeather();
 
       let timestamp: number | null = null;
@@ -290,30 +339,10 @@ function App() {
       if (latestWeatherData.length > 0) {
         timestamp = latestWeatherData[latestWeatherData.length - 1];
 
-        const drawWeatherLayer = () =>
-          map.addLayer({
-            id: "weatherLayer",
-            type: "raster",
-            source: {
-              id: "weatherLayerSource",
-              type: "raster",
-              tiles: [
-                `https://tilecache.rainviewer.com/v2/radar/${timestamp}/256/{z}/{x}/{y}/2/1_1.png`,
-              ],
-              tileSize: 256,
-            },
-            minZoom: 0,
-            maxZoom: 12,
-            layout: {},
-            paint: {
-              "raster-opacity": 0.5,
-            },
-          });
-
         // Render the Weather Layer on render. Otherwise, update it.
         if (isInit) {
           map.on("load", () => {
-            drawWeatherLayer();
+            drawWeatherLayer(map, timestamp);
 
             setLatestWeatherTimestamp(timestamp);
           });
@@ -321,7 +350,7 @@ function App() {
           if (latestWeatherTimestamp && latestWeatherTimestamp !== timestamp) {
             map.removeLayer("weatherLayer").removeSource("weatherLayer");
 
-            drawWeatherLayer();
+            drawWeatherLayer(map, timestamp);
 
             setLatestWeatherTimestamp(timestamp);
           }
@@ -337,6 +366,18 @@ function App() {
     },
     [drawWeather]
   );
+
+  const selectFlight = (flight: ICluster) => {
+    const {
+      planned_depairport,
+      planned_route,
+      planned_destairport,
+    } = flight.properties;
+
+    setSelectedFlight(flight);
+
+    getRoute(planned_depairport, planned_route, planned_destairport);
+  };
 
   // Continue to retrieve Flight and Weather data every 15 seconds.
   useInterval(() => {
@@ -369,6 +410,14 @@ function App() {
       window.removeEventListener("keydown", listener);
     };
   }, [handleGetData, drawRoute, getUpdatedWeather]);
+
+  useEffect(() => {
+    const map = mapRef.current.getMap();
+
+    map.on("resize", () => {
+      console.log("resizing...");
+    });
+  }, []);
 
   return (
     <ReactMapGL
@@ -425,21 +474,10 @@ function App() {
           >
             <img
               onClick={(e) => {
-                const {
-                  planned_depairport,
-                  planned_route,
-                  planned_destairport,
-                } = clusterObj.properties;
                 e.preventDefault();
 
                 if (!clusterObj.properties.isController) {
-                  setSelectedFlight(clusterObj);
-
-                  getRoute(
-                    planned_depairport,
-                    planned_route,
-                    planned_destairport
-                  );
+                  selectFlight(clusterObj);
                 }
               }}
               onMouseOver={(e) => {
@@ -458,18 +496,6 @@ function App() {
           </Marker>
         );
       })}
-      {/* 
-      <div>
-        <input
-          className="search"
-          name="flightSearch"
-          type="text"
-          value={flightSearch}
-          onChange={(e) => {
-            setFlightSearch(e.target.value);
-          }}
-        />
-      </div> */}
 
       {
         <img

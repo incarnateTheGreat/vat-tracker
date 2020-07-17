@@ -78,3 +78,24 @@ export const assembleClusterData = (data) => {
     };
   });
 };
+
+export const drawWeatherLayer = (map, timestamp) => {
+  return map.addLayer({
+    id: "weatherLayer",
+    type: "raster",
+    source: {
+      id: "weatherLayerSource",
+      type: "raster",
+      tiles: [
+        `https://tilecache.rainviewer.com/v2/radar/${timestamp}/256/{z}/{x}/{y}/2/1_1.png`,
+      ],
+      tileSize: 256,
+    },
+    minZoom: 0,
+    maxZoom: 12,
+    layout: {},
+    paint: {
+      "raster-opacity": 0.5,
+    },
+  });
+};
