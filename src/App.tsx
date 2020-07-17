@@ -1,16 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import useInterval from "use-interval";
 import ReactMapGL, {
   FlyToInterpolator,
   Marker,
   NavigationControl,
-  Popup,
 } from "react-map-gl";
 import useSupercluster from "use-supercluster";
-import * as d3 from "d3-ease";
+// import * as d3 from "d3-ease";
 import polyline from "@mapbox/polyline";
-import { getDecodedFlightRoute, getVatsimData } from "./api/api";
-import { ICluster, IViewport, IFlight } from "./declaration/interface";
-import { getTypeOfAircraft, getTypeOfAircraftSelected } from "./helpers/utils";
+import { getDecodedFlightRoute, getVatsimData, getWeather } from "./api/api";
+import { ICluster, IViewport, IFlight } from "./declaration/app";
+import {
+  assembleClusterData,
+  getTypeOfAircraft,
+  getTypeOfAircraftSelected,
+} from "./helpers/utils";
 
 function App() {
   const [viewport, setViewport] = useState<IViewport>({
@@ -24,40 +28,26 @@ function App() {
   const [flightData, setFlightData] = useState<IFlight[]>([]);
   const [flightRoute, setFlightRoute] = useState<number[]>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
-  const [displayPopup, setDisplayPopup] = useState<ICluster | null>(null);
   const [selectedFlight, setSelectedFlight] = useState<ICluster | null>(null);
-  const [flightSearch, setFlightSearch] = useState<string>("");
+  const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
+    false
+  );
+  const [latestWeatherTimestamp, setLatestWeatherTimestamp] = useState<
+    number | null
+  >(null);
+  // const [flightSearch, setFlightSearch] = useState<string>("");
   const mapRef = useRef<any>(null);
 
   // Get the Data from the API Service.
-  const handleGetData = () => {
-    getVatsimData().then((data) => {
-      if (Object.keys(data).length > 0) {
-        setFlightData(data.flights);
+  const handleGetData = useCallback(async () => {
+    const data = await getVatsimData();
 
-        assembleClusterData(data.flights);
-      }
-    });
-  };
+    if (Object.keys(data).length > 0) {
+      setFlightData(data.flights);
 
-  // In order to display the Flights with Clustering, objects need to be created to assist with using Supercluster.
-  const assembleClusterData = (data) => {
-    const clusterFlights = data.map((flight: IFlight) => {
-      return {
-        type: "Feature",
-        properties: {
-          cluster: false,
-          ...flight,
-        },
-        geometry: {
-          type: "Point",
-          coordinates: [flight.location.longitude, flight.location.latitude],
-        },
-      };
-    });
-
-    setClusterData(clusterFlights);
-  };
+      setClusterData(assembleClusterData(data.flights));
+    }
+  }, []);
 
   // Click on a Cluster and zoom in to its active children.
   const handleClusterClick = (
@@ -126,6 +116,30 @@ function App() {
     return <div className="flight-data"></div>;
   };
 
+  // Navigation Menu
+  const navigationMenu = () => {
+    if (toggleNavigationMenu) {
+      return (
+        <div
+          className={`navigation-menu ${
+            toggleNavigationMenu ? "navigation-menu-enabled" : ""
+          }`}
+        >
+          <h2>Vat-Tracker</h2>
+          <div></div>
+          <div
+            className="navigation-menu-close"
+            onClick={() => setToggleNavigationMenu(false)}
+          >
+            X
+          </div>
+        </div>
+      );
+    }
+
+    return <div className="navigation-menu"></div>;
+  };
+
   // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
   const indicateFlightInCluster = (clusterObj) => {
     const flightsInClusters = supercluster.getLeaves(
@@ -138,54 +152,8 @@ function App() {
     });
   };
 
-  // Hover over a Flight to get its details.
-  const displayPopupDataView = () => {
-    if (displayPopup) {
-      const {
-        callsign,
-        isController,
-        name,
-        planned_aircraft,
-        planned_depairport,
-        planned_destairport,
-        altitude,
-        heading,
-        groundspeed,
-      } = displayPopup.properties;
-      const [longitude, latitude] = displayPopup.geometry.coordinates;
-
-      if (isController) {
-        return (
-          <Popup longitude={longitude} latitude={latitude}>
-            <div>
-              <h3>{callsign}</h3>
-              <h5>{name}</h5>
-            </div>
-          </Popup>
-        );
-      }
-
-      return (
-        <Popup longitude={longitude} latitude={latitude}>
-          <div>
-            <h3>{callsign}</h3>
-            <h5>{name}</h5>
-            <div>{planned_depairport}</div>
-            <div>{planned_destairport}</div>
-            <div>{planned_aircraft}</div>
-            <div>{altitude} FT.</div>
-            <div>{heading}</div>
-            <div>{groundspeed} kts</div>
-          </div>
-        </Popup>
-      );
-    }
-
-    return null;
-  };
-
   // Handle the Airplane Icon type.
-  const handleIcon = (flightData: ICluster) => {
+  const handleIcon = (flightData: ICluster, isHover?: boolean) => {
     if (flightData.properties.isController) {
       return getTypeOfAircraft("controller");
     }
@@ -196,7 +164,8 @@ function App() {
 
     // If a Flight is selected, assign the Selected Airplane Icon to it.
     if (
-      selectedFlight?.properties.callsign === flightData.properties.callsign
+      selectedFlight?.properties.callsign === flightData.properties.callsign ||
+      isHover
     ) {
       return getTypeOfAircraftSelected(flightData.properties.planned_aircraft);
     }
@@ -218,56 +187,27 @@ function App() {
     options: { radius: 75, maxZoom: 10 },
   });
 
-  const goToNYC = () => {
-    const viewportNYC = {
-      ...viewport,
-      longitude: -74.1,
-      latitude: 40.7,
-      zoom: 14,
-      transitionDuration: 2000,
-      transitionInterpolator: new FlyToInterpolator(),
-      transitionEasing: d3.easeQuad,
-    };
+  // const goToNYC = () => {
+  //   const viewportNYC = {
+  //     ...viewport,
+  //     longitude: -74.1,
+  //     latitude: 40.7,
+  //     zoom: 14,
+  //     transitionDuration: 2000,
+  //     transitionInterpolator: new FlyToInterpolator(),
+  //     transitionEasing: d3.easeQuad,
+  //   };
 
-    setViewport(viewportNYC);
-  };
-
-  // When the app renders, get the data and continue to get the data every 15 seconds.
-  useEffect(() => {
-    handleGetData();
-
-    setInterval(() => {
-      handleGetData();
-    }, 15000);
-
-    const listener = (e) => {
-      if (e.key === "Escape") {
-        setSelectedFlight(null);
-        drawRoute(null);
-      }
-    };
-
-    window.addEventListener("keydown", listener);
-
-    return () => {
-      window.removeEventListener("keydown", listener);
-    };
-  }, []);
+  //   setViewport(viewportNYC);
+  // };
 
   // Check if Selected Flight is still selected.
-  const checkStillActive = () => {
+  const checkStillActive = useCallback(() => {
     return flightData.find(
       (flight: IFlight) =>
         selectedFlight?.properties.callsign === flight.callsign
     );
-  };
-
-  useEffect(() => {
-    if (!checkStillActive()) {
-      setSelectedFlight(null);
-      drawRoute(null);
-    }
-  }, [clusterData]);
+  }, [flightData, selectedFlight]);
 
   // Remove the Waypoints of the Selected Flight.
   const removeRoute = () => {
@@ -299,7 +239,7 @@ function App() {
   };
 
   // Draw the Waypoints of the Selected Flight.
-  const drawRoute = (flightCoordinates) => {
+  const drawRoute = useCallback((flightCoordinates) => {
     const map = mapRef.current.getMap();
 
     removeRoute();
@@ -337,7 +277,98 @@ function App() {
         },
       });
     }
-  };
+  }, []);
+
+  const drawWeather = useCallback(
+    async (isInit = false) => {
+      const map = mapRef.current.getMap();
+
+      const latestWeatherData: number[] = await getWeather();
+
+      let timestamp: number | null = null;
+
+      if (latestWeatherData.length > 0) {
+        timestamp = latestWeatherData[latestWeatherData.length - 1];
+
+        const drawWeatherLayer = () =>
+          map.addLayer({
+            id: "weatherLayer",
+            type: "raster",
+            source: {
+              id: "weatherLayerSource",
+              type: "raster",
+              tiles: [
+                `https://tilecache.rainviewer.com/v2/radar/${timestamp}/256/{z}/{x}/{y}/2/1_1.png`,
+              ],
+              tileSize: 256,
+            },
+            minZoom: 0,
+            maxZoom: 12,
+            layout: {},
+            paint: {
+              "raster-opacity": 0.5,
+            },
+          });
+
+        // Render the Weather Layer on render. Otherwise, update it.
+        if (isInit) {
+          map.on("load", () => {
+            drawWeatherLayer();
+
+            setLatestWeatherTimestamp(timestamp);
+          });
+        } else {
+          if (latestWeatherTimestamp && latestWeatherTimestamp !== timestamp) {
+            map.removeLayer("weatherLayer").removeSource("weatherLayer");
+
+            drawWeatherLayer();
+
+            setLatestWeatherTimestamp(timestamp);
+          }
+        }
+      }
+    },
+    [latestWeatherTimestamp]
+  );
+
+  const getUpdatedWeather = useCallback(
+    async (isInit = false) => {
+      await drawWeather(isInit);
+    },
+    [drawWeather]
+  );
+
+  // Continue to retrieve Flight and Weather data every 15 seconds.
+  useInterval(() => {
+    handleGetData();
+    getUpdatedWeather();
+  }, 15000);
+
+  useEffect(() => {
+    if (!checkStillActive()) {
+      setSelectedFlight(null);
+      drawRoute(null);
+    }
+  }, [checkStillActive, clusterData, drawRoute]);
+
+  // When the app renders, get the data and continue to get the data every 15 seconds.
+  useEffect(() => {
+    handleGetData();
+    getUpdatedWeather(true);
+
+    const listener = (e) => {
+      if (e.key === "Escape") {
+        setSelectedFlight(null);
+        drawRoute(null);
+      }
+    };
+
+    window.addEventListener("keydown", listener);
+
+    return () => {
+      window.removeEventListener("keydown", listener);
+    };
+  }, [handleGetData, drawRoute, getUpdatedWeather]);
 
   return (
     <ReactMapGL
@@ -352,6 +383,7 @@ function App() {
       <div className="navigation-control">
         <NavigationControl />
       </div>
+
       {clusters.map((clusterObj: ICluster) => {
         const [longitude, latitude] = clusterObj.geometry.coordinates;
         const {
@@ -410,15 +442,15 @@ function App() {
                   );
                 }
               }}
-              onMouseOver={() => {
-                setDisplayPopup(clusterObj);
+              onMouseOver={(e) => {
+                e.currentTarget.src = handleIcon(clusterObj, true);
               }}
-              onMouseLeave={() => {
-                setDisplayPopup(null);
+              onMouseOut={(e) => {
+                e.currentTarget.src = handleIcon(clusterObj);
               }}
               className="marker-image"
               src={handleIcon(clusterObj)}
-              alt={"callsign"}
+              alt={clusterObj.properties.callsign}
               style={{
                 transform: `rotate(${clusterObj.properties.heading}deg)`,
               }}
@@ -438,14 +470,18 @@ function App() {
           }}
         />
       </div> */}
-      {
-        <button type="button" onClick={goToNYC}>
-          NYC!
-        </button>
-      }
-      {displayFlightDataView()}
 
-      {displayPopupDataView()}
+      {
+        <img
+          onClick={() => setToggleNavigationMenu(!toggleNavigationMenu)}
+          className="menu"
+          src="/icons/menu-icon.png"
+          alt="Navigation Menu"
+        />
+      }
+
+      {navigationMenu()}
+      {displayFlightDataView()}
     </ReactMapGL>
   );
 }

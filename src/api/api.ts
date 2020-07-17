@@ -14,7 +14,11 @@ export const getDecodedFlightRoute = async (origin, route, destination) => {
       route,
       destination,
     },
-  }).then((res) => {
-    return res.data;
-  });
+  }).then((res) => res.data);
+};
+
+export const getWeather = async () => {
+  return await axios("https://api.rainviewer.com/public/maps.json").then(
+    (res) => res.data
+  );
 };

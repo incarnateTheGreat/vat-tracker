@@ -80,6 +80,7 @@
     "ts-pnp": "1.1.6",
     "typescript": "^3.7.5",
     "url-loader": "2.3.0",
+    "use-interval": "^1.2.1",
     "use-supercluster": "^0.2.8",
     "webpack": "4.42.0",
     "webpack-dev-server": "3.10.3",
