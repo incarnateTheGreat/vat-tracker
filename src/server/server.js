@@ -78,6 +78,8 @@ app.route("/api/vatsim-data").get((req, res) => {
   // Get random path to avoid hitting the same VATSIM server over and over.
   const vatsim_path = "http://us.data.vatsim.net/vatsim-data.txt";
 
+  const { isInit } = req.query;
+
   console.log("------------------------------------------------------------");
   console.log("Get VATSIM Data...");
   console.log(vatsim_path);
@@ -115,9 +117,9 @@ app.route("/api/vatsim-data").get((req, res) => {
       console.log("Timestamp:", timestamp);
       console.log("Render Timestamp:", renderTimestamp);
 
-      if (timestamp === renderTimestamp) {
-        res.send({});
-      } else if (timestamp !== renderTimestamp || timestamp.length === 0) {
+      if (isInit && timestamp !== renderTimestamp) {
+        console.log("RETURN DATA.");
+
         for (let i = 0; i < results.length; i++) {
           let clientInterface = {};
           let clientDataSplit = results[i].split(":");
@@ -183,11 +185,91 @@ app.route("/api/vatsim-data").get((req, res) => {
         timestamp = renderTimestamp;
 
         res.send({ flights, controllers, icaos });
+      } else if (timestamp === renderTimestamp && !isInit) {
+        res.send({});
+      } else {
+        res.send(null);
       }
-    } else {
-      console.log("Not working...");
 
-      res.send(null);
+      //   if (timestamp === renderTimestamp) {
+      //     res.send({});
+      //   } else if (
+      //     isInit ||
+      //     timestamp !== renderTimestamp ||
+      //     timestamp.length === 0
+      //   ) {
+      //     console.log("RETURN DATA.");
+
+      //     for (let i = 0; i < results.length; i++) {
+      //       let clientInterface = {};
+      //       let clientDataSplit = results[i].split(":");
+
+      //       // Using the CLIENT_LABELS Interface, assign each delimited element to its respective key.
+      //       for (let j = 0; j < CLIENT_LABELS.length; j++) {
+      //         clientInterface[CLIENT_LABELS[j]] = clientDataSplit[j];
+      //       }
+
+      //       // If the Flight doesn't have a recorded LAT/LNG, do not add it to the array.
+      //       if (!checkFlightPosition(clientInterface)) {
+      //         flights.push({
+      //           isController: clientInterface.frequency !== "" ? true : false,
+      //           name: clientInterface.realname,
+      //           callsign: clientInterface.callsign,
+      //           location: {
+      //             latitude: parseFloat(clientInterface.latitude),
+      //             longitude: parseFloat(clientInterface.longitude),
+      //           },
+      //           frequency: clientInterface.frequency,
+      //           altitude: clientInterface.altitude,
+      //           planned_aircraft: clientInterface.planned_aircraft,
+      //           heading: clientInterface.heading,
+      //           groundspeed: clientInterface.groundspeed,
+      //           transponder: clientInterface.transponder,
+      //           planned_depairport: clientInterface.planned_depairport,
+      //           planned_destairport: clientInterface.planned_destairport,
+      //           planned_route: clientInterface.planned_route,
+      //         });
+      //       }
+      //     }
+
+      //     // Separate the Controllers & Destinations from the Flights.
+      //     const controllers = flights.filter((client) => client.frequency !== "");
+      //     const icaos = [];
+
+      //     // Create Destinations Object.
+      //     const icaos_temp = flights.reduce((r, a) => {
+      //       const icao_destination = a.planned_destairport.toUpperCase(),
+      //         icao_departure = a.planned_depairport.toUpperCase();
+
+      //       if (icao_destination !== "") {
+      //         r[icao_destination] = r[icao_destination] || [];
+      //         r[icao_destination].push(a);
+      //       }
+
+      //       if (icao_departure !== "") {
+      //         r[icao_departure] = r[icao_departure] || [];
+      //         r[icao_departure].push(a);
+      //       }
+
+      //       return r;
+      //     }, {});
+
+      //     // Put Departure & Destination ICAOs into Array.
+      //     for (let key in icaos_temp) icaos.push(key);
+
+      //     console.log("Number of Lines:", lines.length);
+      //     console.log("Number of results:", results.length);
+      //     console.log("Number of ICAOS:", icaos.length);
+
+      //     // Update the Timestamp;
+      //     timestamp = renderTimestamp;
+
+      //     res.send({ flights, controllers, icaos });
+      //   }
+      // } else {
+      //   console.log("Not working...");
+
+      //   res.send(null);
     }
   });
 });

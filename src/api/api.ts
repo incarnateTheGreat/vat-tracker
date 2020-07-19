@@ -1,10 +1,12 @@
 import axios from "axios";
 
 // VATSIM APIs
-export const getVatsimData = async () => {
-  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/vatsim-data`).then(
-    (res) => res.data
-  );
+export const getVatsimData = async (isInit) => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/vatsim-data/`, {
+    params: {
+      isInit,
+    },
+  }).then((res) => res.data);
 };
 
 export const getDecodedFlightRoute = async (origin, route, destination) => {

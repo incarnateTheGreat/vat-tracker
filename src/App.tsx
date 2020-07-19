@@ -5,7 +5,6 @@ import ReactMapGL, {
   Marker,
   NavigationControl,
 } from "react-map-gl";
-import mapboxgl from "mapbox-gl";
 import useSupercluster from "use-supercluster";
 // import * as d3 from "d3-ease";
 import polyline from "@mapbox/polyline";
@@ -30,7 +29,6 @@ function App() {
     zoom: 1,
   });
   const [flightData, setFlightData] = useState<IFlight[]>([]);
-  const [flightRoute, setFlightRoute] = useState<number[]>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<ICluster | null>(null);
   const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
@@ -43,8 +41,8 @@ function App() {
   const mapRef = useRef<any>(null);
 
   // Get the Data from the API Service.
-  const handleGetData = useCallback(async () => {
-    const data = await getVatsimData();
+  const handleGetData = useCallback(async (isInit = false) => {
+    const data = await getVatsimData(isInit);
 
     if (Object.keys(data).length > 0) {
       setFlightData(data.flights);
@@ -157,6 +155,7 @@ function App() {
 
                   if (res) {
                     selectFlight(res);
+                    setToggleNavigationMenu(false);
                   }
                 }
               }}
@@ -260,7 +259,6 @@ function App() {
     );
 
     if (res.encodedPolyline) {
-      setFlightRoute(polyline.decode(res.encodedPolyline));
       drawRoute(polyline.decode(res.encodedPolyline));
     } else {
       drawRoute(null);
@@ -394,7 +392,7 @@ function App() {
 
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
-    handleGetData();
+    handleGetData(true);
     getUpdatedWeather(true);
 
     const listener = (e) => {
