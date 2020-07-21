@@ -6,11 +6,24 @@ import ReactMapGL, {
   NavigationControl,
 } from "react-map-gl";
 import useSupercluster from "use-supercluster";
-// import * as d3 from "d3-ease";
+import * as d3 from "d3-ease";
 import polyline from "@mapbox/polyline";
 
-import { getDecodedFlightRoute, getVatsimData, getWeather } from "./api/api";
-import { ICluster, IViewport, IFlight } from "./declaration/app";
+import {
+  fetchRoute,
+  getDecodedFlightRoute,
+  getVatsimData,
+  getWeather,
+  getFlights,
+  getFlight,
+} from "./api/api";
+import {
+  ICluster,
+  IClusterTwo,
+  IViewport,
+  IFlightTwoDetails,
+  IFlightTwo,
+} from "./declaration/app";
 import {
   assembleClusterData,
   drawWeatherLayer,
@@ -28,9 +41,11 @@ function App() {
     width: "100%",
     zoom: 1,
   });
-  const [flightData, setFlightData] = useState<IFlight[]>([]);
+  const [flightData, setFlightData] = useState<IFlightTwo[]>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
-  const [selectedFlight, setSelectedFlight] = useState<ICluster | null>(null);
+  const [selectedFlight, setSelectedFlight] = useState<IClusterTwo | null>(
+    null
+  );
   const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
     false
   );
@@ -40,14 +55,15 @@ function App() {
   const [flightSearch, setFlightSearch] = useState<string>("");
   const mapRef = useRef<any>(null);
 
-  // Get the Data from the API Service.
-  const handleGetData = useCallback(async (isInit = false) => {
-    const data = await getVatsimData(isInit);
+  const handleGetExperimentalFlightData = useCallback(async () => {
+    const data = await getFlights();
+
+    // setFlightDataEpx(data.active_flights);
 
     if (Object.keys(data).length > 0) {
-      setFlightData(data.flights);
+      setFlightData(data.active_flights);
 
-      setClusterData(assembleClusterData(data.flights));
+      setClusterData(assembleClusterData(data.active_flights));
     }
   }, []);
 
@@ -81,26 +97,32 @@ function App() {
     if (selectedFlight && isStillSelected) {
       const {
         callsign,
-        name,
+        real_name,
+        current_altitude,
+        current_ground_speed,
+        current_heading,
         planned_aircraft,
-        planned_depairport,
-        planned_destairport,
-        altitude,
-        heading,
-        groundspeed,
+        planned_dep_airport__icao,
+        planned_dep_airport__name,
+        planned_dest_airport__icao,
+        planned_dest_airport__name,
       } = isStillSelected;
 
       return (
         <div className="flight-data flight-data-enabled">
           <div>
             <h3>{callsign}</h3>
-            <h5>{name}</h5>
-            <div>{planned_depairport}</div>
-            <div>{planned_destairport}</div>
+            <h5>{real_name}</h5>
+            <div>
+              {planned_dep_airport__icao} ({planned_dep_airport__name})
+            </div>
+            <div>
+              {planned_dest_airport__icao} ({planned_dest_airport__name})
+            </div>
             <div>{planned_aircraft}</div>
-            <div>{altitude} FT.</div>
-            <div>{heading}&deg;</div>
-            <div>{groundspeed} kts</div>
+            <div>{current_altitude} FT.</div>
+            <div>{current_heading}&deg;</div>
+            <div>{current_ground_speed} kts</div>
           </div>
           <div
             className="flight-data-close"
@@ -176,15 +198,15 @@ function App() {
     );
 
     return flightsInClusters.find((flight: ICluster) => {
-      return flight.properties.callsign === selectedFlight?.properties.callsign;
+      return flight.properties.callsign === selectedFlight?.callsign;
     });
   };
 
   // Handle the Airplane Icon type.
   const handleIcon = (flightData: ICluster, isHover?: boolean) => {
-    if (flightData.properties.isController) {
-      return getTypeOfAircraft("controller");
-    }
+    // if (flightData.properties.isController) {
+    //   return getTypeOfAircraft("controller");
+    // }
 
     const aircraftType = getTypeOfAircraft(
       flightData.properties.planned_aircraft
@@ -192,7 +214,7 @@ function App() {
 
     // If a Flight is selected, assign the Selected Airplane Icon to it.
     if (
-      selectedFlight?.properties.callsign === flightData.properties.callsign ||
+      selectedFlight?.callsign === flightData.properties.callsign ||
       isHover
     ) {
       return getTypeOfAircraftSelected(flightData.properties.planned_aircraft);
@@ -215,39 +237,16 @@ function App() {
     options: { radius: 75, maxZoom: 10 },
   });
 
-  // const goToNYC = () => {
-  //   const viewportNYC = {
-  //     ...viewport,
-  //     longitude: -74.1,
-  //     latitude: 40.7,
-  //     zoom: 14,
-  //     transitionDuration: 2000,
-  //     transitionInterpolator: new FlyToInterpolator(),
-  //     transitionEasing: d3.easeQuad,
-  //   };
-
-  //   setViewport(viewportNYC);
-  // };
-
   // Check if Selected Flight is still selected.
   const checkStillActive = useCallback(() => {
     return flightData.find(
-      (flight: IFlight) =>
-        selectedFlight?.properties.callsign === flight.callsign
+      (flight: IFlightTwo) => selectedFlight?.callsign === flight.callsign
     );
   }, [flightData, selectedFlight]);
 
-  // Remove the Waypoints of the Selected Flight.
-  const removeRoute = () => {
-    const map = mapRef.current.getMap();
-
-    if (map.getLayer("route")) {
-      map.removeLayer("route").removeSource("route");
-    }
-  };
-
   // Get the Route data to draw on the screen.
   const getRoute = async (
+    location,
     planned_depairport,
     planned_route,
     planned_destairport
@@ -258,27 +257,65 @@ function App() {
       planned_destairport
     );
 
+    // console.log(res, polyline.decode(res.encodedPolyline));
+
+    console.log(fetchRoute(res.id));
+
     if (res.encodedPolyline) {
-      drawRoute(polyline.decode(res.encodedPolyline));
+      drawRoute(polyline.decode(res.encodedPolyline), location);
     } else {
       drawRoute(null);
     }
   };
 
+  // Remove the Waypoints of the Selected Flight.
+  const removeRoute = () => {
+    const map = mapRef.current.getMap();
+
+    if (map.getLayer("route")) {
+      // Remove Route and its source.
+      map.removeLayer("route").removeSource("route");
+
+      // Remove the Waypoints and its source.
+      map.removeLayer("route-points").removeSource("route-points");
+    }
+  };
+
   // Draw the Waypoints of the Selected Flight.
-  const drawRoute = useCallback((flightCoordinates) => {
+  const drawRoute = useCallback((flightCoordinates, location?) => {
     const map = mapRef.current.getMap();
 
     removeRoute();
 
-    if (flightCoordinates) {
-      const coordinates = flightCoordinates.reduce((r, acc) => {
-        const [latitude, longitude] = acc;
+    if (flightCoordinates && location) {
+      const { longitude, latitude } = location;
 
-        r.push([longitude, latitude]);
+      const coordinates = flightCoordinates.reduce((r, acc) => {
+        const [latitudeCoords, longitudeCoords] = acc;
+
+        r.push([longitudeCoords, latitudeCoords]);
 
         return r;
       }, []);
+
+      const parseCoordsData = coordinates.reduce((r, acc) => {
+        const obj = {
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: acc,
+          },
+          properties: {
+            title: "Garry",
+          },
+        };
+
+        r.push(obj);
+
+        return r;
+      }, []);
+
+      console.log(parseCoordsData);
 
       map.addLayer({
         id: "route",
@@ -303,6 +340,37 @@ function App() {
           "line-width": 3,
         },
       });
+
+      map.addLayer({
+        id: "route-points",
+        type: "symbol",
+        source: {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: parseCoordsData,
+          },
+        },
+        layout: {
+          // get the title name from the source's "title" property
+          "text-field": ["get", "title"],
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+          "text-offset": [0, 1.25],
+          "text-anchor": "top",
+        },
+      });
+
+      const navigateToFlight = {
+        ...viewport,
+        longitude,
+        latitude,
+        zoom: 5,
+        transitionDuration: 2000,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionEasing: d3.easeQuad,
+      };
+
+      setViewport(navigateToFlight);
 
       // const [first, last] = [
       //   coordinates[0],
@@ -365,21 +433,26 @@ function App() {
     [drawWeather]
   );
 
-  const selectFlight = (flight: ICluster) => {
-    const {
-      planned_depairport,
-      planned_route,
-      planned_destairport,
-    } = flight.properties;
+  const selectFlight = async (flight: ICluster) => {
+    const getSelectedFlightData: IFlightTwoDetails = await getFlight(
+      flight.properties.id
+    );
 
-    setSelectedFlight(flight);
+    const { current_latitude, current_longitude } = getSelectedFlightData;
 
-    getRoute(planned_depairport, planned_route, planned_destairport);
+    setSelectedFlight(getSelectedFlightData);
+
+    getRoute(
+      { latitude: current_latitude, longitude: current_longitude },
+      getSelectedFlightData.planned_dep_airport.icao,
+      getSelectedFlightData.planned_route,
+      getSelectedFlightData.planned_dest_airport.icao
+    );
   };
 
   // Continue to retrieve Flight and Weather data every 15 seconds.
   useInterval(() => {
-    handleGetData();
+    handleGetExperimentalFlightData();
     getUpdatedWeather();
   }, 15000);
 
@@ -392,7 +465,7 @@ function App() {
 
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
-    handleGetData(true);
+    handleGetExperimentalFlightData();
     getUpdatedWeather(true);
 
     const listener = (e) => {
@@ -407,15 +480,19 @@ function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, [handleGetData, drawRoute, getUpdatedWeather]);
+  }, [handleGetExperimentalFlightData, drawRoute, getUpdatedWeather]);
 
   useEffect(() => {
     const map = mapRef.current.getMap();
 
-    map.on("resize", () => {
-      console.log("resizing...");
-    });
+    // map.on("resize", () => {
+    //   console.log("resizing...");
+    // });
   }, []);
+
+  useInterval(() => {
+    handleGetExperimentalFlightData();
+  }, 15000);
 
   return (
     <ReactMapGL
@@ -474,9 +551,9 @@ function App() {
               onClick={(e) => {
                 e.preventDefault();
 
-                if (!clusterObj.properties.isController) {
-                  selectFlight(clusterObj);
-                }
+                // if (!clusterObj.properties.isController) {
+                selectFlight(clusterObj);
+                // }
               }}
               onMouseOver={(e) => {
                 e.currentTarget.src = handleIcon(clusterObj, true);
@@ -488,7 +565,7 @@ function App() {
               src={handleIcon(clusterObj)}
               alt={clusterObj.properties.callsign}
               style={{
-                transform: `rotate(${clusterObj.properties.heading}deg)`,
+                transform: `rotate(${clusterObj.properties.current_heading}deg)`,
               }}
             />
           </Marker>
