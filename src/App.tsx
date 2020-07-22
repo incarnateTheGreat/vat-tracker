@@ -7,12 +7,10 @@ import ReactMapGL, {
 } from "react-map-gl";
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
-import polyline from "@mapbox/polyline";
 
 import {
   fetchRoute,
   getDecodedFlightRoute,
-  getVatsimData,
   getWeather,
   getFlights,
   getFlight,
@@ -57,8 +55,6 @@ function App() {
 
   const handleGetExperimentalFlightData = useCallback(async () => {
     const data = await getFlights();
-
-    // setFlightDataEpx(data.active_flights);
 
     if (Object.keys(data).length > 0) {
       setFlightData(data.active_flights);
@@ -251,18 +247,17 @@ function App() {
     planned_route,
     planned_destairport
   ) => {
-    const res = await getDecodedFlightRoute(
+    const decodedFlightRoute = await getDecodedFlightRoute(
       planned_depairport,
       planned_route,
       planned_destairport
     );
 
-    // console.log(res, polyline.decode(res.encodedPolyline));
+    const routeData = await fetchRoute(decodedFlightRoute.id);
 
-    console.log(fetchRoute(res.id));
-
-    if (res.encodedPolyline) {
-      drawRoute(polyline.decode(res.encodedPolyline), location);
+    if (decodedFlightRoute.encodedPolyline) {
+      // drawRoute(polyline.decode(decodedFlightRoute.encodedPolyline), location);
+      drawRoute(routeData.route.nodes, location);
     } else {
       drawRoute(null);
     }
@@ -290,23 +285,27 @@ function App() {
     if (flightCoordinates && location) {
       const { longitude, latitude } = location;
 
+      // Assemble Coordinates.
       const coordinates = flightCoordinates.reduce((r, acc) => {
-        const [latitudeCoords, longitudeCoords] = acc;
+        const { lon, lat } = acc;
 
-        r.push([longitudeCoords, latitudeCoords]);
+        r.push([lon, lat]);
 
         return r;
       }, []);
 
-      const parseCoordsData = coordinates.reduce((r, acc) => {
+      // Assemble GeoJSON Data.
+      const parseCoordsData = flightCoordinates.reduce((r, acc) => {
+        const { lon, lat, ident } = acc;
+
         const obj = {
           type: "Feature",
           geometry: {
             type: "Point",
-            coordinates: acc,
+            coordinates: [lon, lat],
           },
           properties: {
-            title: "Garry",
+            title: ident,
           },
         };
 
@@ -315,8 +314,7 @@ function App() {
         return r;
       }, []);
 
-      console.log(parseCoordsData);
-
+      // Draw the Route Line.
       map.addLayer({
         id: "route",
         type: "line",
@@ -341,6 +339,7 @@ function App() {
         },
       });
 
+      // Draw the Route Waypoint Idents.
       map.addLayer({
         id: "route-points",
         type: "symbol",
@@ -355,22 +354,22 @@ function App() {
           // get the title name from the source's "title" property
           "text-field": ["get", "title"],
           "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          "text-offset": [0, 1.25],
+          "text-offset": [0, 0.5],
           "text-anchor": "top",
         },
       });
 
-      const navigateToFlight = {
-        ...viewport,
-        longitude,
-        latitude,
-        zoom: 5,
-        transitionDuration: 2000,
-        transitionInterpolator: new FlyToInterpolator(),
-        transitionEasing: d3.easeQuad,
-      };
+      // const navigateToFlight = {
+      //   ...viewport,
+      //   longitude,
+      //   latitude,
+      //   zoom: 5,
+      //   transitionDuration: 2000,
+      //   transitionInterpolator: new FlyToInterpolator(),
+      //   transitionEasing: d3.easeQuad,
+      // };
 
-      setViewport(navigateToFlight);
+      // setViewport(navigateToFlight);
 
       // const [first, last] = [
       //   coordinates[0],

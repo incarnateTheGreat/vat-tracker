@@ -24,9 +24,7 @@ export const fetchRoute = async (id) => {
     params: {
       id,
     },
-  }).then((res) => {
-    console.log(res.data);
-  });
+  }).then((res) => res.data);
 };
 
 export const getWeather = async () => {
