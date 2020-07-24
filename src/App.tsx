@@ -28,11 +28,12 @@ import {
   getTypeOfAircraft,
   getTypeOfAircraftSelected,
 } from "./helpers/utils";
+import { Autocomplete } from "./components/autocomplete.component";
 
 function App() {
   const [viewport, setViewport] = useState<IViewport>({
-    latitude: 43.7147326,
-    longitude: -79.2541669,
+    latitude: 0,
+    longitude: 0,
     maxZoom: 20,
     // width: "100vw",
     height: "100vh",
@@ -50,7 +51,7 @@ function App() {
   const [latestWeatherTimestamp, setLatestWeatherTimestamp] = useState<
     number | null
   >(null);
-  const [flightSearch, setFlightSearch] = useState<string>("");
+
   const mapRef = useRef<any>(null);
 
   const handleGetExperimentalFlightData = useCallback(async () => {
@@ -156,27 +157,19 @@ function App() {
           </div>
 
           <nav className="navigation-menu-links">
-            <input
-              className="search"
-              name="flightSearch"
-              type="text"
-              value={flightSearch}
-              onChange={(e) => {
-                setFlightSearch(e.target.value.toUpperCase());
-              }}
-              onKeyUp={(e) => {
-                if (e.key === "Enter") {
-                  const res = clusterData.find(
-                    (flight: ICluster) =>
-                      flight.properties.callsign === flightSearch
-                  );
+            <Autocomplete
+              onSelect={(callsign) => {
+                const foundFlight = clusterData.find(
+                  (flight: ICluster) => flight.properties.callsign === callsign
+                );
 
-                  if (res) {
-                    selectFlight(res);
-                    setToggleNavigationMenu(false);
-                  }
+                if (foundFlight) {
+                  selectFlight(foundFlight, true);
+                  setToggleNavigationMenu(false);
                 }
               }}
+              searchCompareValue="properties.callsign"
+              selectionData={clusterData}
             />
           </nav>
         </div>
@@ -245,7 +238,8 @@ function App() {
     location,
     planned_depairport,
     planned_route,
-    planned_destairport
+    planned_destairport,
+    transitionToFlightLoc
   ) => {
     const decodedFlightRoute = await getDecodedFlightRoute(
       planned_depairport,
@@ -256,8 +250,7 @@ function App() {
     const routeData = await fetchRoute(decodedFlightRoute.id);
 
     if (decodedFlightRoute.encodedPolyline) {
-      // drawRoute(polyline.decode(decodedFlightRoute.encodedPolyline), location);
-      drawRoute(routeData.route.nodes, location);
+      drawRoute(routeData.route.nodes, location, transitionToFlightLoc);
     } else {
       drawRoute(null);
     }
@@ -272,125 +265,230 @@ function App() {
       map.removeLayer("route").removeSource("route");
 
       // Remove the Waypoints and its source.
-      map.removeLayer("route-points").removeSource("route-points");
+      map.removeLayer("route-idents").removeSource("route-idents");
+
+      if (map.getLayer("route-points")) {
+        // Remove the Waypoints circles..
+        map.removeLayer("route-points").removeSource("route-points");
+      }
     }
   };
 
   // Draw the Waypoints of the Selected Flight.
-  const drawRoute = useCallback((flightCoordinates, location?) => {
-    const map = mapRef.current.getMap();
+  const drawRoute = useCallback(
+    (flightCoordinates, location?, transitionToFlightLoc = false) => {
+      const map = mapRef.current.getMap();
 
-    removeRoute();
+      removeRoute();
 
-    if (flightCoordinates && location) {
-      const { longitude, latitude } = location;
+      if (flightCoordinates && location) {
+        // Assemble Coordinates.
+        const coordinates = flightCoordinates.reduce((r, acc) => {
+          const { lon, lat } = acc;
 
-      // Assemble Coordinates.
-      const coordinates = flightCoordinates.reduce((r, acc) => {
-        const { lon, lat } = acc;
+          r.push([lon, lat]);
 
-        r.push([lon, lat]);
+          return r;
+        }, []);
 
-        return r;
-      }, []);
+        var createGeoJSONCircle = function (
+          { latitude, longitude },
+          radiusInKm = 10,
+          points
+        ) {
+          if (!points) points = 64;
 
-      // Assemble GeoJSON Data.
-      const parseCoordsData = flightCoordinates.reduce((r, acc) => {
-        const { lon, lat, ident } = acc;
+          // var coords = {
+          //     latitude: center[1],
+          //     longitude: center[0]
+          // };
 
-        const obj = {
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [lon, lat],
-          },
-          properties: {
-            title: ident,
-          },
+          var km = radiusInKm;
+
+          var ret: any[] = [];
+          var distanceX = km / (111.32 * Math.cos((latitude * Math.PI) / 180));
+          var distanceY = km / 110.574;
+
+          console.log(distanceX, distanceY);
+
+          var theta, x, y;
+          for (var i = 0; i < points; i++) {
+            theta = (i / points) * (2 * Math.PI);
+            x = distanceX * Math.cos(theta);
+            y = distanceY * Math.sin(theta);
+
+            ret.push([longitude + x, latitude + y]);
+          }
+          ret.push(ret[0]);
+
+          return {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  geometry: {
+                    type: "Polygon",
+                    coordinates: [ret],
+                  },
+                },
+              ],
+            },
+          };
         };
 
-        r.push(obj);
+        // Assemble GeoJSON Data.
+        const parseCoordsData = flightCoordinates.reduce((r, acc) => {
+          const { lon, lat, ident } = acc;
 
-        return r;
-      }, []);
-
-      // Draw the Route Line.
-      map.addLayer({
-        id: "route",
-        type: "line",
-        source: {
-          type: "geojson",
-          data: {
+          const obj = {
             type: "Feature",
-            properties: {},
             geometry: {
-              type: "LineString",
-              coordinates,
+              type: "Point",
+              coordinates: [lon, lat],
+            },
+            properties: {
+              title: ident,
+            },
+          };
+
+          r.push(obj);
+
+          return r;
+        }, []);
+
+        // Draw the Route Line.
+        map.addLayer({
+          id: "route",
+          type: "line",
+          source: {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "LineString",
+                coordinates,
+              },
             },
           },
-        },
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-color": "#de3a1f",
-          "line-width": 3,
-        },
-      });
-
-      // Draw the Route Waypoint Idents.
-      map.addLayer({
-        id: "route-points",
-        type: "symbol",
-        source: {
-          type: "geojson",
-          data: {
-            type: "FeatureCollection",
-            features: parseCoordsData,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
           },
-        },
-        layout: {
-          // get the title name from the source's "title" property
-          "text-field": ["get", "title"],
-          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-          "text-offset": [0, 0.5],
-          "text-anchor": "top",
-        },
-      });
+          paint: {
+            "line-color": "#de3a1f",
+            "line-width": 3,
+          },
+        });
 
-      // const navigateToFlight = {
-      //   ...viewport,
-      //   longitude,
-      //   latitude,
-      //   zoom: 5,
-      //   transitionDuration: 2000,
-      //   transitionInterpolator: new FlyToInterpolator(),
-      //   transitionEasing: d3.easeQuad,
-      // };
+        // Draw the Route Waypoint Idents.
+        map.addLayer({
+          id: "route-idents",
+          type: "symbol",
+          source: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: parseCoordsData,
+            },
+          },
+          layout: {
+            // get the title name from the source's "title" property
+            "text-field": ["get", "title"],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-offset": [0, 0.5],
+            "text-anchor": "top",
+          },
+        });
 
-      // setViewport(navigateToFlight);
+        // Draw the Route Waypoint circles..
+        // map.addSource(
+        //   "polygon",
+        //   createGeoJSONCircle(
+        //     { latitude: 41.58527859, longitude: -93.6248586 },
+        //     10,
+        //     0.5
+        //   )
+        // );
 
-      // const [first, last] = [
-      //   coordinates[0],
-      //   coordinates[coordinates.length - 1],
-      // ];
+        // map.addLayer({
+        //   id: "polygon",
+        //   type: "fill",
+        //   source: "polygon",
+        //   layout: {},
+        //   paint: {
+        //     "fill-color": "red",
+        //     "fill-opacity": 1,
+        //   },
+        // });
 
-      // console.log(first, last);
+        // map.addLayer({
+        //   id: "route-points",
+        //   type: "circle",
+        //   source: {
+        //     type: "geojson",
+        //     features: [
+        //       {
+        //         type: "Feature",
+        //         geometry: {
+        //           type: "Point",
+        //           coordinates: [49.8537377, -97.2923063],
+        //         },
+        //       },
+        //     ],
+        //   },
+        //   // layout: {
+        //   //   visibility: "none",
+        //   // },
+        //   paint: {
+        //     "circle-radius": 10,
+        //     "circle-color": "#5b94c6",
+        //     "circle-opacity": 1,
+        //   },
+        // });
 
-      // map.fitBounds([first, last]);
+        if (transitionToFlightLoc) {
+          navigateToFlight(location);
+        }
 
-      // const bounds = coordinates.reduce(function (bounds, coord) {
-      //   return bounds.extend(coord);
-      // }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+        // const [first, last] = [
+        //   coordinates[0],
+        //   coordinates[coordinates.length - 1],
+        // ];
 
-      // map.fitBounds(bounds, {
-      //   padding: 20,
-      // });
+        // console.log(first, last);
 
-      // console.log(bounds);
-    }
-  }, []);
+        // map.fitBounds([first, last]);
+
+        // const bounds = coordinates.reduce(function (bounds, coord) {
+        //   return bounds.extend(coord);
+        // }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
+
+        // map.fitBounds(bounds, {
+        //   padding: 20,
+        // });
+
+        // console.log(bounds);
+      }
+    },
+    []
+  );
+
+  const navigateToFlight = (location) => {
+    const { longitude, latitude } = location;
+
+    setViewport({
+      ...viewport,
+      longitude,
+      latitude,
+      zoom: 5,
+      transitionDuration: 2000,
+      transitionInterpolator: new FlyToInterpolator(),
+      transitionEasing: d3.easeQuad,
+    });
+  };
 
   const drawWeather = useCallback(
     async (isInit = false) => {
@@ -432,7 +530,10 @@ function App() {
     [drawWeather]
   );
 
-  const selectFlight = async (flight: ICluster) => {
+  const selectFlight = async (
+    flight: ICluster,
+    transitionToFlightLoc: boolean = false
+  ) => {
     const getSelectedFlightData: IFlightTwoDetails = await getFlight(
       flight.properties.id
     );
@@ -445,7 +546,8 @@ function App() {
       { latitude: current_latitude, longitude: current_longitude },
       getSelectedFlightData.planned_dep_airport.icao,
       getSelectedFlightData.planned_route,
-      getSelectedFlightData.planned_dest_airport.icao
+      getSelectedFlightData.planned_dest_airport.icao,
+      transitionToFlightLoc
     );
   };
 

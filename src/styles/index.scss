@@ -1,3 +1,9 @@
+// Variables
+@import "./variables";
+
+// Components
+@import "../components/autocomplete.component";
+
 body {
   margin: 0;
   padding: 0;
@@ -42,7 +48,7 @@ body {
   padding: 10px;
   position: relative;
   transition: 0.2s ease-in-out;
-  min-width: 25%;
+  min-width: 15%;
   z-index: 2;
 
   position: absolute;

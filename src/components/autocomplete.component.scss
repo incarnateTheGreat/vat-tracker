@@ -1,0 +1,29 @@
+.autocomplete {
+  font-size: $size-14;
+  position: relative;
+
+  &-results {
+    background: $clr-white;
+    position: absolute;
+    width: 100%;
+    z-index: 100;
+  }
+
+  &-result {
+    display: flex;
+    cursor: pointer;
+    padding: 2px 5px;
+
+    &.--no-results {
+      cursor: default;
+
+      &:hover {
+        background: $clr-white;
+      }
+    }
+
+    &:hover {
+      background-color: #dadada;
+    }
+  }
+}

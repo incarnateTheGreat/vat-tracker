@@ -4,6 +4,7 @@ export interface IViewport {
   maxZoom: number;
   transitionInterpolator?: any;
   transitionDuration?: any;
+  transitionEasing?: any;
   width: string | number;
   height: string | number;
   zoom: number;
