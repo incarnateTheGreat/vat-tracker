@@ -1,4 +1,4 @@
-import { IFlight, IFlightTwo } from "../declaration/app";
+import { IFlightVatStats } from "../declaration/app";
 
 // Select and Assign the correct (or approximate) Aircraft Type for the Marker.
 export const getTypeOfAircraft = (aircraft) => {
@@ -64,7 +64,7 @@ export const getTypeOfAircraftSelected = (aircraft) => {
 
 // In order to display the Flights with Clustering, objects need to be created to assist with using Supercluster.
 export const assembleClusterData = (data) => {
-  return data.map((flight: IFlightTwo) => {
+  return data.map((flight: IFlightVatStats) => {
     return {
       type: "Feature",
       properties: {

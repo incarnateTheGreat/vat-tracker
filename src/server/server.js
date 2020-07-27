@@ -12,6 +12,8 @@ app.listen(8000, () => {
   console.log("Express server started!");
 });
 
+const VAT_STATUS_BASE_URL = "https://beta-api.vatstats.net/external_api";
+
 // app.use("/api/metar/:metar", (req, res) => {
 //   const metar = req.params["metar"].toUpperCase();
 
@@ -29,7 +31,7 @@ app.listen(8000, () => {
 
 app.use("/api/flights", (req, res) => {
   const options = {
-    url: `https://beta-api.vatstats.net/external_api/home_page/`,
+    url: `${VAT_STATUS_BASE_URL}/home_page/`,
     method: "GET",
   };
 
@@ -42,7 +44,33 @@ app.use("/api/flight", (req, res) => {
   const { id } = req.query;
 
   const options = {
-    url: `https://beta-api.vatstats.net/external_api/flights/${id}/?format=json`,
+    url: `${VAT_STATUS_BASE_URL}/flights/${id}/?format=json`,
+    method: "GET",
+  };
+
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
+
+app.use("/api/airports", (req, res) => {
+  const { icao } = req.query;
+
+  const options = {
+    url: `${VAT_STATUS_BASE_URL}/airports/?icao__icontains=${icao}`,
+    method: "GET",
+  };
+
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
+
+app.use("/api/airport", (req, res) => {
+  const { id } = req.query;
+
+  const options = {
+    url: `${VAT_STATUS_BASE_URL}/airports/${id}/`,
     method: "GET",
   };
 

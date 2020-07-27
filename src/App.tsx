@@ -12,15 +12,17 @@ import {
   fetchRoute,
   getDecodedFlightRoute,
   getWeather,
+  getAirport,
+  getAirports,
   getFlights,
   getFlight,
 } from "./api/api";
 import {
   ICluster,
-  IClusterTwo,
+  IClusterDetails,
   IViewport,
-  IFlightTwoDetails,
-  IFlightTwo,
+  IFlightVatStatsDetails,
+  IFlightVatStats,
 } from "./declaration/app";
 import {
   assembleClusterData,
@@ -40,9 +42,10 @@ function App() {
     width: "100%",
     zoom: 1,
   });
-  const [flightData, setFlightData] = useState<IFlightTwo[]>([]);
+  const [flightData, setFlightData] = useState<IFlightVatStats[]>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
-  const [selectedFlight, setSelectedFlight] = useState<IClusterTwo | null>(
+  const [icaoData, setIcaoData] = useState<object[]>([]);
+  const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
     null
   );
   const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
@@ -51,6 +54,7 @@ function App() {
   const [latestWeatherTimestamp, setLatestWeatherTimestamp] = useState<
     number | null
   >(null);
+  const [icaoInput, setIcaoInput] = useState<string>("");
 
   const mapRef = useRef<any>(null);
 
@@ -137,6 +141,10 @@ function App() {
     return <div className="flight-data"></div>;
   };
 
+  useEffect(() => {
+    console.log(icaoData);
+  }, [icaoData]);
+
   // Navigation Menu
   const navigationMenu = () => {
     if (toggleNavigationMenu) {
@@ -170,6 +178,30 @@ function App() {
               }}
               searchCompareValue="properties.callsign"
               selectionData={clusterData}
+            />
+
+            <Autocomplete
+              callback={async (value) => {
+                setIcaoInput(value);
+
+                const icaoRes = await getAirports(value);
+
+                setIcaoData(icaoRes?.results);
+              }}
+              onSelect={async (callsign) => {
+                const icaoRes =
+                  icaoData.find((icaoObj) => icaoObj["icao"] === callsign) ||
+                  {};
+
+                if (icaoRes) {
+                  const airportData = await getAirport(icaoRes["id"]);
+
+                  console.log(airportData);
+                }
+              }}
+              onServiceChange={getAirport}
+              searchCompareValue="icao"
+              selectionData={icaoData}
             />
           </nav>
         </div>
@@ -229,7 +261,7 @@ function App() {
   // Check if Selected Flight is still selected.
   const checkStillActive = useCallback(() => {
     return flightData.find(
-      (flight: IFlightTwo) => selectedFlight?.callsign === flight.callsign
+      (flight: IFlightVatStats) => selectedFlight?.callsign === flight.callsign
     );
   }, [flightData, selectedFlight]);
 
@@ -534,7 +566,7 @@ function App() {
     flight: ICluster,
     transitionToFlightLoc: boolean = false
   ) => {
-    const getSelectedFlightData: IFlightTwoDetails = await getFlight(
+    const getSelectedFlightData: IFlightVatStatsDetails = await getFlight(
       flight.properties.id
     );
 

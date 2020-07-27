@@ -40,6 +40,25 @@ export const getFlights = async () => {
   );
 };
 
+// Get a list of Airports based on a substring
+export const getAirports = async (icao) => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/airports`, {
+    params: {
+      icao,
+    },
+  }).then((res) => res.data);
+};
+
+// Get an Airport via its Vat-Stats ID.
+export const getAirport = async (id) => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/airport`, {
+    params: {
+      id,
+    },
+  }).then((res) => res.data);
+};
+
+// Get Flight Data from Vat-Stats.
 export const getFlight = async (id) => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flight`, {
     params: {

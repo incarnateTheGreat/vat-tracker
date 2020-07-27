@@ -38,7 +38,7 @@ export interface IFlight {
   transponder: string;
 }
 
-export interface IFlightTwo {
+export interface IFlightVatStats {
   id: number;
   callsign: string;
   real_name: string;
@@ -67,7 +67,7 @@ export interface IFlightTwo {
   };
 }
 
-export interface IFlightTwoDetails {
+export interface IFlightVatStatsDetails {
   id: number;
   data_points: [
     {
@@ -237,17 +237,11 @@ export interface ICluster {
   type: string;
 }
 
-export interface IClusterTwo extends IFlightTwoDetails {}
+export interface IClusterDetails extends IFlightVatStatsDetails {}
 
-// export interface IClusterProperties extends IFlight {
-//   cluster: boolean;
-//   cluster_id: number;
-//   isCluster: boolean;
-//   pointCount?: number;
-//   point_count: number;
-// }
-
-export interface IClusterProperties extends IFlightTwo, IFlightTwoDetails {
+export interface IClusterProperties
+  extends IFlightVatStats,
+    IFlightVatStatsDetails {
   cluster: boolean;
   cluster_id: number;
   isCluster: boolean;

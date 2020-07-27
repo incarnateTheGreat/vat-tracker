@@ -1,10 +1,13 @@
 import React, { createRef, useCallback, useEffect, useState } from "react";
 
-export const Autocomplete = ({
-  onSelect,
-  searchCompareValue = "",
-  selectionData,
-}) => {
+export const Autocomplete = (props) => {
+  const {
+    callback,
+    onSelect,
+    searchCompareValue = "",
+    selectionData = [],
+  } = props;
+
   const [items, setItems] = useState(selectionData);
   const [selectedValue, setSelectedValue] = useState("");
   const [sortedResult, setSortedResult] = useState<object[]>([]);
@@ -26,7 +29,7 @@ export const Autocomplete = ({
   };
 
   const handleSearch = useCallback(
-    (query) => {
+    async (query) => {
       let sortedResultLocal = [];
 
       // If the Items' children are objects, then filter and map out results. Otherwise, treat the Items as a one-dimensional Array.
@@ -42,6 +45,7 @@ export const Autocomplete = ({
         } else {
           sortedResultLocal = items.filter((item: string) => {
             const regex = new RegExp(query, "gi");
+
             return item.match(regex);
           });
         }
@@ -146,6 +150,10 @@ export const Autocomplete = ({
         onChange={(event) => {
           setSelectedValue(event.target.value.toUpperCase());
           handleSearch(event.target.value.toUpperCase());
+
+          if (callback) {
+            callback(event.target.value.toUpperCase());
+          }
         }}
         onKeyUp={sortItems}
         placeholder="Search for Callsign"
