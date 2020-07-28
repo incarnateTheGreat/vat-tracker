@@ -37,7 +37,6 @@ function App() {
     latitude: 0,
     longitude: 0,
     maxZoom: 20,
-    // width: "100vw",
     height: "100vh",
     width: "100%",
     zoom: 1,
@@ -47,6 +46,9 @@ function App() {
   const [icaoData, setIcaoData] = useState<object[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
     null
+  );
+  const [displaySelectedFlight, setDisplaySelectedFlight] = useState<boolean>(
+    false
   );
   const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
     false
@@ -95,7 +97,7 @@ function App() {
   const displayFlightDataView = () => {
     const isStillSelected = checkStillActive();
 
-    if (selectedFlight && isStillSelected) {
+    if (selectedFlight && displaySelectedFlight && isStillSelected) {
       const {
         callsign,
         real_name,
@@ -111,24 +113,47 @@ function App() {
 
       return (
         <div className="flight-data flight-data-enabled">
-          <div>
-            <h3>{callsign}</h3>
-            <h5>{real_name}</h5>
-            <div>
-              {planned_dep_airport__icao} ({planned_dep_airport__name})
+          <div className="flight-data-details">
+            <div className="flight-data-details-callsign-user">
+              <h2>{callsign}</h2>{" "}
+              <span className="flight-data-details-callsign-user-divider">
+                /
+              </span>{" "}
+              <h5>{real_name}</h5>
             </div>
-            <div>
-              {planned_dest_airport__icao} ({planned_dest_airport__name})
+
+            <div className="grid-container">
+              <div className="grid-container-item grid-container-item-icao">
+                <div>{planned_dep_airport__icao}</div>
+                <div>{planned_dep_airport__name}</div>
+              </div>
+              <div className="grid-container-item grid-container-item-icao">
+                <div>{planned_dest_airport__icao}</div>
+                <div>{planned_dest_airport__name}</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
+                <div>Equipment</div>
+                <div>{planned_aircraft}</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-altitude">
+                <div>Altitude</div>
+                <div>{current_altitude} ft.</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-heading">
+                <div>Heading</div>
+                <div>{current_heading}&deg;</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
+                <div>Ground Speed</div>
+                <div>{current_ground_speed} kts.</div>
+              </div>
             </div>
-            <div>{planned_aircraft}</div>
-            <div>{current_altitude} FT.</div>
-            <div>{current_heading}&deg;</div>
-            <div>{current_ground_speed} kts</div>
           </div>
           <div
             className="flight-data-close"
             onClick={() => {
               setSelectedFlight(null);
+              setDisplaySelectedFlight(false);
               removeRoute();
             }}
           >
@@ -193,7 +218,8 @@ function App() {
                 if (icaoRes) {
                   const airportData = await getAirport(icaoRes["id"]);
 
-                  console.log(airportData);
+                  navigateToAirport(airportData);
+                  setToggleNavigationMenu(false);
                 }
               }}
               placeholder="Search for ICAO"
@@ -520,6 +546,20 @@ function App() {
     });
   };
 
+  const navigateToAirport = (location) => {
+    const { longitude, latitude } = location;
+
+    setViewport({
+      ...viewport,
+      longitude,
+      latitude,
+      zoom: 12,
+      transitionDuration: 2000,
+      transitionInterpolator: new FlyToInterpolator(),
+      transitionEasing: d3.easeQuad,
+    });
+  };
+
   const drawWeather = useCallback(
     async (isInit = false) => {
       const map = mapRef.current.getMap();
@@ -590,6 +630,7 @@ function App() {
   useEffect(() => {
     if (!checkStillActive()) {
       setSelectedFlight(null);
+      setDisplaySelectedFlight(false);
       drawRoute(null);
     }
   }, [checkStillActive, clusterData, drawRoute]);
@@ -602,6 +643,7 @@ function App() {
     const listener = (e) => {
       if (e.key === "Escape") {
         setSelectedFlight(null);
+        setDisplaySelectedFlight(false);
         drawRoute(null);
       }
     };
@@ -613,14 +655,6 @@ function App() {
     };
   }, [handleGetExperimentalFlightData, drawRoute, getUpdatedWeather]);
 
-  useEffect(() => {
-    const map = mapRef.current.getMap();
-
-    // map.on("resize", () => {
-    //   console.log("resizing...");
-    // });
-  }, []);
-
   useInterval(() => {
     handleGetExperimentalFlightData();
   }, 15000);
@@ -631,7 +665,12 @@ function App() {
       mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
       mapStyle="mapbox://styles/incarnate/ckc5i9a5s02w21ipgctm9js0w"
       onViewportChange={(viewportObj: IViewport) => {
-        setViewport(viewportObj);
+        setViewport({ ...viewportObj, height: "100vh", width: "100%" });
+      }}
+      onTransitionEnd={() => {
+        if (selectedFlight && !displaySelectedFlight) {
+          setDisplaySelectedFlight(true);
+        }
       }}
       ref={mapRef}
     >
@@ -684,6 +723,7 @@ function App() {
 
                 // if (!clusterObj.properties.isController) {
                 selectFlight(clusterObj);
+                setDisplaySelectedFlight(true);
                 // }
               }}
               onMouseOver={(e) => {

@@ -1,12 +1,23 @@
 // Variables
+@import "./fonts";
 @import "./variables";
 
 // Components
 @import "../components/autocomplete.component";
 
 body {
+  font-family: "ProximaNova", sans-serif;
   margin: 0;
   padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
 }
 
 .marker {
@@ -40,30 +51,98 @@ body {
 }
 
 .flight-data {
-  background-color: #dadada;
+  background-color: #3c3c3c;
+  bottom: 40px;
+  color: #fff;
   display: flex;
-  height: 100%;
   justify-content: space-between;
-  margin-left: -26%;
+  margin-bottom: -40%;
+  opacity: 1;
   padding: 10px;
-  position: relative;
-  transition: 0.2s ease-in-out;
-  min-width: 15%;
-  z-index: 2;
-
   position: absolute;
+  transition: 0.2s ease-in-out;
+  right: calc(50% - 400px);
+  visibility: hidden;
+  width: 800px;
+  z-index: 10000;
 
   &-enabled {
-    margin-left: 0;
+    margin-bottom: 0;
+    visibility: visible;
+  }
+
+  &-details {
+    flex-basis: 97%;
+
+    &-callsign-user {
+      align-items: center;
+      display: flex;
+      background-color: #5d5d5d;
+      padding: 10px 0 10px 10px;
+
+      & > * {
+        padding: 0 8px 0 0;
+      }
+
+      &-divider {
+        font-size: $size-28;
+      }
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: auto auto auto auto;
+      grid-gap: 2px;
+      margin: 2px 0 0;
+
+      &-item {
+        background-color: rgba(93, 93, 93, 0.8);
+        text-align: center;
+        padding: 14px 0;
+        font-size: 30px;
+
+        &-icao {
+          display: flex;
+          flex-direction: column;
+          grid-column: span 2;
+
+          & > div {
+            &:first-child {
+              font-weight: bold;
+            }
+            &:last-child {
+              font-size: $size-16;
+            }
+          }
+        }
+
+        &-lower-level {
+          font-size: $size-18;
+          padding: 0;
+
+          & > div {
+            &:first-child {
+              background-color: rgba(154, 154, 154, 0.8);
+              padding: 4px 0;
+            }
+
+            &:last-child {
+              padding: 10px 0;
+            }
+          }
+        }
+      }
+    }
   }
 
   &-close {
     cursor: pointer;
+    font-weight: bold;
   }
 }
 
 .navigation-menu {
-  background-color: #dadada;
+  background-color: #3c3c3c;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -111,4 +190,11 @@ body {
   position: absolute;
   top: 10px;
   width: 3%;
+}
+
+@media only screen and (max-width: 868px) {
+  .flight-data {
+    right: calc(50% - 250px);
+    width: 500px;
+  }
 }
