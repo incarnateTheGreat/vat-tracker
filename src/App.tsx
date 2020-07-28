@@ -141,10 +141,6 @@ function App() {
     return <div className="flight-data"></div>;
   };
 
-  useEffect(() => {
-    console.log(icaoData);
-  }, [icaoData]);
-
   // Navigation Menu
   const navigationMenu = () => {
     if (toggleNavigationMenu) {
@@ -176,6 +172,7 @@ function App() {
                   setToggleNavigationMenu(false);
                 }
               }}
+              placeholder="Search for Callsign"
               searchCompareValue="properties.callsign"
               selectionData={clusterData}
             />
@@ -199,9 +196,10 @@ function App() {
                   console.log(airportData);
                 }
               }}
-              onServiceChange={getAirport}
+              placeholder="Search for ICAO"
               searchCompareValue="icao"
               selectionData={icaoData}
+              usesService={true}
             />
           </nav>
         </div>

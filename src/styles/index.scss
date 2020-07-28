@@ -90,6 +90,10 @@ body {
   &-links {
     display: flex;
     flex-direction: column;
+
+    > .autocomplete {
+      margin: 0 0 5px;
+    }
   }
 }
 
