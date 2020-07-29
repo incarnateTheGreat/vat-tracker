@@ -72,16 +72,21 @@ h6 {
   }
 
   &-details {
-    flex-basis: 97%;
+    flex: 1;
 
     &-callsign-user {
-      align-items: center;
       display: flex;
       background-color: #5d5d5d;
-      padding: 10px 0 10px 10px;
+      justify-content: space-between;
+      padding: 10px;
 
-      & > * {
-        padding: 0 8px 0 0;
+      & > div {
+        align-items: center;
+        display: flex;
+
+        & > * {
+          padding: 0 8px 0 0;
+        }
       }
 
       &-divider {

@@ -115,11 +115,24 @@ function App() {
         <div className="flight-data flight-data-enabled">
           <div className="flight-data-details">
             <div className="flight-data-details-callsign-user">
-              <h2>{callsign}</h2>{" "}
-              <span className="flight-data-details-callsign-user-divider">
-                /
-              </span>{" "}
-              <h5>{real_name}</h5>
+              <div>
+                <h2>{callsign}</h2>{" "}
+                <span className="flight-data-details-callsign-user-divider">
+                  /
+                </span>{" "}
+                <h5>{real_name}</h5>
+              </div>
+
+              <div
+                className="flight-data-close"
+                onClick={() => {
+                  setSelectedFlight(null);
+                  setDisplaySelectedFlight(false);
+                  removeRoute();
+                }}
+              >
+                X
+              </div>
             </div>
 
             <div className="grid-container">
@@ -148,16 +161,6 @@ function App() {
                 <div>{current_ground_speed} kts.</div>
               </div>
             </div>
-          </div>
-          <div
-            className="flight-data-close"
-            onClick={() => {
-              setSelectedFlight(null);
-              setDisplaySelectedFlight(false);
-              removeRoute();
-            }}
-          >
-            X
           </div>
         </div>
       );
