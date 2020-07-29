@@ -18,6 +18,7 @@ import {
   getFlight,
 } from "./api/api";
 import {
+  IAirport,
   ICluster,
   IClusterDetails,
   IViewport,
@@ -50,6 +51,10 @@ function App() {
   const [displaySelectedFlight, setDisplaySelectedFlight] = useState<boolean>(
     false
   );
+  const [selectedAirport, setSelectedAirport] = useState<IAirport | null>(null);
+  const [displaySelectedAirport, setDisplaySelectedAirport] = useState<boolean>(
+    false
+  );
   const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
     false
   );
@@ -60,7 +65,17 @@ function App() {
 
   const mapRef = useRef<any>(null);
 
-  const handleGetExperimentalFlightData = useCallback(async () => {
+  const [superClusterData, setSuperClusterData] = useState({
+    points: clusterData,
+    bounds:
+      mapRef && mapRef.current
+        ? mapRef.current.getMap().getBounds().toArray().flat()
+        : null,
+    zoom: viewport.zoom,
+    options: { radius: 75, maxZoom: 10 },
+  });
+
+  const handleGetFlightData = useCallback(async () => {
     const data = await getFlights();
 
     if (Object.keys(data).length > 0) {
@@ -126,15 +141,12 @@ function App() {
               <div
                 className="flight-data-close"
                 onClick={() => {
-                  setSelectedFlight(null);
-                  setDisplaySelectedFlight(false);
-                  removeRoute();
+                  deselectFlight();
                 }}
               >
                 X
               </div>
             </div>
-
             <div className="grid-container">
               <div className="grid-container-item grid-container-item-icao">
                 <div>{planned_dep_airport__icao}</div>
@@ -167,6 +179,79 @@ function App() {
     }
 
     return <div className="flight-data"></div>;
+  };
+
+  const displayAirportData = () => {
+    if (selectedAirport && displaySelectedAirport) {
+      console.log(selectedAirport);
+
+      // const {
+      //   callsign,
+      //   real_name,
+      //   current_altitude,
+      //   current_ground_speed,
+      //   current_heading,
+      //   planned_aircraft,
+      //   planned_dep_airport__icao,
+      //   planned_dep_airport__name,
+      //   planned_dest_airport__icao,
+      //   planned_dest_airport__name,
+      // } = selectedAirport;
+
+      return (
+        <div className="airport-data airport-data-enabled">
+          Airport.
+          {/* <div className="flight-data-details">
+            <div className="flight-data-details-callsign-user">
+              <div>
+                <h2>{callsign}</h2>{" "}
+                <span className="flight-data-details-callsign-user-divider">
+                  /
+                </span>{" "}
+                <h5>{real_name}</h5>
+              </div>
+
+              <div
+                className="flight-data-close"
+                onClick={() => {
+                  deselectFlight();
+                }}
+              >
+                X
+              </div>
+            </div>
+            <div className="grid-container">
+              <div className="grid-container-item grid-container-item-icao">
+                <div>{planned_dep_airport__icao}</div>
+                <div>{planned_dep_airport__name}</div>
+              </div>
+              <div className="grid-container-item grid-container-item-icao">
+                <div>{planned_dest_airport__icao}</div>
+                <div>{planned_dest_airport__name}</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
+                <div>Equipment</div>
+                <div>{planned_aircraft}</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-altitude">
+                <div>Altitude</div>
+                <div>{current_altitude} ft.</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-heading">
+                <div>Heading</div>
+                <div>{current_heading}&deg;</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
+                <div>Ground Speed</div>
+                <div>{current_ground_speed} kts.</div>
+              </div>
+            </div>
+          </div> */}
+        </div>
+      );
+    }
+
+    return <div className="airport-data"></div>;
   };
 
   // Navigation Menu
@@ -222,6 +307,8 @@ function App() {
                   const airportData = await getAirport(icaoRes["id"]);
 
                   navigateToAirport(airportData);
+                  setSelectedAirport(airportData);
+                  setDisplaySelectedAirport(true);
                   setToggleNavigationMenu(false);
                 }
               }}
@@ -271,19 +358,8 @@ function App() {
     return aircraftType;
   };
 
-  // Get the Bounds of the Map.
-  const bounds =
-    mapRef && mapRef.current
-      ? mapRef.current.getMap().getBounds().toArray().flat()
-      : null;
-
   // Assign the Cluster Data, Bounds, Zoom, and other Options to Superclister.
-  const { clusters, supercluster } = useSupercluster({
-    points: clusterData,
-    bounds,
-    zoom: viewport.zoom,
-    options: { radius: 75, maxZoom: 10 },
-  });
+  const { clusters, supercluster } = useSupercluster(superClusterData);
 
   // Check if Selected Flight is still selected.
   const checkStillActive = useCallback(() => {
@@ -517,19 +593,14 @@ function App() {
         //   coordinates[coordinates.length - 1],
         // ];
 
-        // console.log(first, last);
-
-        // map.fitBounds([first, last]);
-
-        // const bounds = coordinates.reduce(function (bounds, coord) {
-        //   return bounds.extend(coord);
-        // }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
-
-        // map.fitBounds(bounds, {
+        // map.fitBounds([first, last], {
         //   padding: 20,
         // });
 
-        // console.log(bounds);
+        // setSuperClusterData({
+        //   ...superClusterData,
+        //   bounds: [first, last],
+        // });
       }
     },
     []
@@ -615,7 +686,7 @@ function App() {
 
     setSelectedFlight(getSelectedFlightData);
 
-    getRoute(
+    await getRoute(
       { latitude: current_latitude, longitude: current_longitude },
       getSelectedFlightData.planned_dep_airport.icao,
       getSelectedFlightData.planned_route,
@@ -624,30 +695,49 @@ function App() {
     );
   };
 
+  const deselectFlight = useCallback(() => {
+    setSelectedFlight(null);
+    setDisplaySelectedFlight(false);
+    removeRoute();
+  }, []);
+
+  const deselectAirport = useCallback(() => {
+    setSelectedAirport(null);
+    setDisplaySelectedAirport(false);
+  }, []);
+
+  const selectFlightFunc = async (flight) => {
+    // Disable the Selected Flight to clear the screen and allow for the new selection to load togerther.
+    if (selectedFlight) {
+      setSelectedFlight(null);
+    }
+
+    await selectFlight(flight);
+
+    setDisplaySelectedFlight(true);
+  };
+
   // Continue to retrieve Flight and Weather data every 15 seconds.
   useInterval(() => {
-    handleGetExperimentalFlightData();
+    handleGetFlightData();
     getUpdatedWeather();
   }, 15000);
 
   useEffect(() => {
     if (!checkStillActive()) {
-      setSelectedFlight(null);
-      setDisplaySelectedFlight(false);
-      drawRoute(null);
+      deselectFlight();
     }
-  }, [checkStillActive, clusterData, drawRoute]);
+  }, [checkStillActive, clusterData, drawRoute, deselectFlight]);
 
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
-    handleGetExperimentalFlightData();
+    handleGetFlightData();
     getUpdatedWeather(true);
 
     const listener = (e) => {
       if (e.key === "Escape") {
-        setSelectedFlight(null);
-        setDisplaySelectedFlight(false);
-        drawRoute(null);
+        deselectFlight();
+        deselectAirport();
       }
     };
 
@@ -656,11 +746,25 @@ function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, [handleGetExperimentalFlightData, drawRoute, getUpdatedWeather]);
+  }, [handleGetFlightData, drawRoute, getUpdatedWeather, deselectFlight]);
 
   useInterval(() => {
-    handleGetExperimentalFlightData();
+    handleGetFlightData();
   }, 15000);
+
+  useEffect(() => {
+    const bounds =
+      mapRef && mapRef.current
+        ? mapRef.current.getMap().getBounds().toArray().flat()
+        : null;
+
+    setSuperClusterData({
+      points: clusterData,
+      bounds,
+      zoom: viewport.zoom,
+      options: { radius: 75, maxZoom: 10 },
+    });
+  }, [clusterData, viewport.zoom]);
 
   return (
     <ReactMapGL
@@ -724,10 +828,7 @@ function App() {
               onClick={(e) => {
                 e.preventDefault();
 
-                // if (!clusterObj.properties.isController) {
-                selectFlight(clusterObj);
-                setDisplaySelectedFlight(true);
-                // }
+                selectFlightFunc(clusterObj);
               }}
               onMouseOver={(e) => {
                 e.currentTarget.src = handleIcon(clusterObj, true);
@@ -757,6 +858,7 @@ function App() {
 
       {navigationMenu()}
       {displayFlightDataView()}
+      {displayAirportData()}
     </ReactMapGL>
   );
 }

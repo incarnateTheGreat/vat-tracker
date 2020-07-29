@@ -249,6 +249,56 @@ export interface IClusterProperties
   point_count: number;
 }
 
+export interface IAirport {
+  arrival_count: number;
+  atis: string;
+  country: string;
+  country_short: string;
+  departure_count: number;
+  elevation: number;
+  icao: string;
+  id: number;
+  last_50_arrivals: [
+    {
+      callsign: string;
+      id: number;
+      planned_aircraft: string;
+      planned_dep_airport: number;
+      planned_dep_airport__icao: string;
+      planned_dep_airport__name: string;
+      planned_dest_airport: number;
+      planned_dest_airport__icao: string;
+      planned_dest_airport__name: string;
+      real_name: string;
+    }
+  ];
+  last_50_departures: [
+    {
+      callsign: string;
+      id: number;
+      planned_aircraft: string;
+      planned_dep_airport: number;
+      planned_dep_airport__icao: string;
+      planned_dep_airport__name: string;
+      planned_dest_airport: number;
+      planned_dest_airport__icao: string;
+      planned_dest_airport__name: string;
+      real_name: string;
+    }
+  ];
+  last_day_arrival_count: number;
+  last_day_departure_count: number;
+  last_hour_arrival_count: number;
+  last_hour_departure_count: number;
+  latitude: number;
+  longitude: number;
+  most_common_aircraft: [{ planned_aircraft: string; dcount: number }];
+  most_common_airline: [{ airline__name: string; dcount: number }];
+  municipality: string;
+  name: string;
+  region: string;
+}
+
 interface IIcaos {
   icaos: object[];
 }
