@@ -3,7 +3,8 @@
 @import "./variables";
 
 // Components
-@import "../components/autocomplete.component";
+@import "../components/Autocomplete/autocomplete.component";
+@import "../components/Spinner/spinner.component";
 
 body {
   font-family: "ProximaNova", sans-serif;
@@ -219,6 +220,28 @@ h6 {
   position: absolute;
   top: 10px;
   width: 3%;
+}
+
+.no-data {
+  align-items: center;
+  background-color: rgb(52, 57, 123);
+  border-radius: 5px;
+  color: $clr-white;
+  display: flex;
+  justify-content: center;
+  left: 50%;
+  opacity: 0;
+  padding: 14px 60px;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.2s ease-in-out;
+  visibility: hidden;
+
+  &-enabled {
+    opacity: 0.9;
+    visibility: visible;
+  }
 }
 
 @media only screen and (max-width: 868px) {

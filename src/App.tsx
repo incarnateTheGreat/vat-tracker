@@ -31,7 +31,8 @@ import {
   getTypeOfAircraft,
   getTypeOfAircraftSelected,
 } from "./helpers/utils";
-import { Autocomplete } from "./components/autocomplete.component";
+import { Autocomplete } from "./components/Autocomplete/autocomplete.component";
+import { Spinner } from "./components/Spinner/spinner.component";
 
 function App() {
   const [viewport, setViewport] = useState<IViewport>({
@@ -42,7 +43,7 @@ function App() {
     width: "100%",
     zoom: 1,
   });
-  const [flightData, setFlightData] = useState<IFlightVatStats[]>([]);
+  const [flightData, setFlightData] = useState<IFlightVatStats[] | null>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
   const [icaoData, setIcaoData] = useState<object[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
@@ -51,6 +52,7 @@ function App() {
   const [displaySelectedFlight, setDisplaySelectedFlight] = useState<boolean>(
     false
   );
+  const [loading, setLoading] = useState<boolean>(false);
   const [selectedAirport, setSelectedAirport] = useState<IAirport | null>(null);
   const [displaySelectedAirport, setDisplaySelectedAirport] = useState<boolean>(
     false
@@ -78,10 +80,14 @@ function App() {
   const handleGetFlightData = useCallback(async () => {
     const data = await getFlights();
 
-    if (Object.keys(data).length > 0) {
+    if (typeof data === "object" && Object.keys(data).length > 0) {
       setFlightData(data.active_flights);
 
       setClusterData(assembleClusterData(data.active_flights));
+    } else {
+      setTimeout(() => {
+        setFlightData(null);
+      }, 2000);
     }
   }, []);
 
@@ -296,7 +302,7 @@ function App() {
 
                 const icaoRes = await getAirports(value);
 
-                setIcaoData(icaoRes?.results);
+                setIcaoData(icaoRes.results ?? []);
               }}
               onSelect={async (callsign) => {
                 const icaoRes =
@@ -363,8 +369,11 @@ function App() {
 
   // Check if Selected Flight is still selected.
   const checkStillActive = useCallback(() => {
-    return flightData.find(
-      (flight: IFlightVatStats) => selectedFlight?.callsign === flight.callsign
+    return (
+      flightData?.find(
+        (flight: IFlightVatStats) =>
+          selectedFlight?.callsign === flight.callsign
+      ) ?? null
     );
   }, [flightData, selectedFlight]);
 
@@ -707,12 +716,15 @@ function App() {
   }, []);
 
   const selectFlightFunc = async (flight) => {
+    await setLoading(true);
+
     // Disable the Selected Flight to clear the screen and allow for the new selection to load togerther.
     if (selectedFlight) {
       setSelectedFlight(null);
     }
 
     await selectFlight(flight);
+    await setLoading(false);
 
     setDisplaySelectedFlight(true);
   };
@@ -766,6 +778,8 @@ function App() {
     });
   }, [clusterData, viewport.zoom]);
 
+  console.log(flightData);
+
   return (
     <ReactMapGL
       {...viewport}
@@ -784,68 +798,73 @@ function App() {
       <div className="navigation-control">
         <NavigationControl />
       </div>
+      <Spinner isEnabled={loading} />
+      <div className={`no-data ${!flightData && "no-data-enabled"}`.trim()}>
+        No data.
+      </div>
 
-      {clusters.map((clusterObj: ICluster) => {
-        const [longitude, latitude] = clusterObj.geometry.coordinates;
-        const {
-          cluster: isCluster,
-          point_count: pointCount,
-        } = clusterObj.properties;
+      {flightData &&
+        clusters.map((clusterObj: ICluster) => {
+          const [longitude, latitude] = clusterObj.geometry.coordinates;
+          const {
+            cluster: isCluster,
+            point_count: pointCount,
+          } = clusterObj.properties;
 
-        if (isCluster) {
+          if (isCluster) {
+            return (
+              <Marker
+                key={`cluster-${clusterObj.properties.cluster_id}`}
+                latitude={latitude}
+                longitude={longitude}
+              >
+                <div
+                  className={`cluster-marker ${
+                    indicateFlightInCluster(clusterObj)
+                      ? "cluster-marker-active"
+                      : ""
+                  }`}
+                  onClick={handleClusterClick(clusterObj, latitude, longitude)}
+                  style={{
+                    width: `${10 + (pointCount / clusterData.length) * 20}px`,
+                    height: `${10 + (pointCount / clusterData.length) * 20}px`,
+                  }}
+                >
+                  {pointCount}
+                </div>
+              </Marker>
+            );
+          }
+
           return (
             <Marker
-              key={`cluster-${clusterObj.properties.cluster_id}`}
+              className="marker"
+              key={`marker-${clusterObj.properties.callsign}`}
               latitude={latitude}
               longitude={longitude}
             >
-              <div
-                className={`cluster-marker ${
-                  indicateFlightInCluster(clusterObj)
-                    ? "cluster-marker-active"
-                    : ""
-                }`}
-                onClick={handleClusterClick(clusterObj, latitude, longitude)}
-                style={{
-                  width: `${10 + (pointCount / clusterData.length) * 20}px`,
-                  height: `${10 + (pointCount / clusterData.length) * 20}px`,
+              <img
+                onClick={(e) => {
+                  e.preventDefault();
+
+                  selectFlightFunc(clusterObj);
                 }}
-              >
-                {pointCount}
-              </div>
+                onMouseOver={(e) => {
+                  e.currentTarget.src = handleIcon(clusterObj, true);
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.src = handleIcon(clusterObj);
+                }}
+                className="marker-image"
+                src={handleIcon(clusterObj)}
+                alt={clusterObj.properties.callsign}
+                style={{
+                  transform: `rotate(${clusterObj.properties.current_heading}deg)`,
+                }}
+              />
             </Marker>
           );
-        }
-
-        return (
-          <Marker
-            className="marker"
-            key={`marker-${clusterObj.properties.callsign}`}
-            latitude={latitude}
-            longitude={longitude}
-          >
-            <img
-              onClick={(e) => {
-                e.preventDefault();
-
-                selectFlightFunc(clusterObj);
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.src = handleIcon(clusterObj, true);
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.src = handleIcon(clusterObj);
-              }}
-              className="marker-image"
-              src={handleIcon(clusterObj)}
-              alt={clusterObj.properties.callsign}
-              style={{
-                transform: `rotate(${clusterObj.properties.current_heading}deg)`,
-              }}
-            />
-          </Marker>
-        );
-      })}
+        })}
 
       {
         <img
