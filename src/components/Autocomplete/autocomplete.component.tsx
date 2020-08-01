@@ -159,6 +159,13 @@ export const Autocomplete = (props) => {
     }
   }, [selectionData, usesService]);
 
+  // If the input requires a data render, and the Input is disabled, re-enable it once the Loading Spinner has disabled and the data is ready.
+  useEffect(() => {
+    if (!loading && inputRef.current.value.length > 0) {
+      inputRef.current.focus();
+    }
+  }, [loading, inputRef]);
+
   return (
     <div className="autocomplete">
       <input
@@ -170,6 +177,7 @@ export const Autocomplete = (props) => {
             callback(event.target.value.toUpperCase());
           }
         }}
+        disabled={loading}
         onKeyUp={sortItems}
         placeholder={placeholder}
         ref={inputRef}

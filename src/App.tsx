@@ -44,6 +44,9 @@ function App() {
     zoom: 1,
   });
   const [flightData, setFlightData] = useState<IFlightVatStats[] | null>([]);
+  const [plannedDepartures, setPlannedDepartures] = useState<
+    IFlightVatStats[] | null
+  >([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
   const [icaoData, setIcaoData] = useState<object[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
@@ -82,7 +85,7 @@ function App() {
 
     if (typeof data === "object" && Object.keys(data).length > 0) {
       setFlightData(data.active_flights);
-
+      setPlannedDepartures(data.departures);
       setClusterData(assembleClusterData(data.active_flights));
     } else {
       setTimeout(() => {
@@ -123,6 +126,8 @@ function App() {
         callsign,
         real_name,
         current_altitude,
+        current_latitude,
+        current_longitude,
         current_ground_speed,
         current_heading,
         planned_aircraft,
@@ -131,6 +136,56 @@ function App() {
         planned_dest_airport__icao,
         planned_dest_airport__name,
       } = isStillSelected;
+
+      const getDistanceInKM = (setPoint, destPoint) => {
+        const { lat1, lon1 } = setPoint;
+        const { lat2, lon2 } = destPoint;
+
+        const R = 6371; // Radius of the earth in km
+        const dLat = deg2rad(lat2 - lat1); // deg2rad below
+        const dLon = deg2rad(lon2 - lon1);
+
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(deg2rad(lat1)) *
+            Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // Distance in km
+      };
+
+      const deg2rad = (deg) => {
+        return deg * (Math.PI / 180);
+      };
+
+      // Get remaining distance.
+      const totalDistance = getDistanceInKM(
+        { lat1: current_latitude, lon1: current_longitude },
+        {
+          lat2: selectedFlight.planned_dest_airport.latitude,
+          lon2: selectedFlight.planned_dest_airport.longitude,
+        }
+      );
+
+      // Get total distance.
+      const remainingDistance = getDistanceInKM(
+        {
+          lat1: selectedFlight.planned_dep_airport.latitude,
+          lon1: selectedFlight.planned_dep_airport.longitude,
+        },
+        {
+          lat2: selectedFlight.planned_dest_airport.latitude,
+          lon2: selectedFlight.planned_dest_airport.longitude,
+        }
+      );
+
+      // Assemble the Percentage Completed value.
+      const percentageCompleted = `${
+        100 - Math.round((totalDistance / remainingDistance) * 100)
+      }%`;
 
       return (
         <div className="flight-data flight-data-enabled">
@@ -160,6 +215,11 @@ function App() {
               </div>
               <div className="grid-container-item grid-container-item-icao">
                 <div>{planned_dest_airport__icao}</div>
+                <img
+                  className="grid-container-item-icao-plane-to"
+                  src="../images/airplane-icon.png"
+                  alt="To"
+                />
                 <div>{planned_dest_airport__name}</div>
               </div>
               <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
@@ -172,12 +232,32 @@ function App() {
               </div>
               <div className="grid-container-item grid-container-item-lower-level grid-container-item-heading">
                 <div>Heading</div>
-                <div>{current_heading}&deg;</div>
+                <div className="grid-container-item-heading-container">
+                  <div
+                    className="grid-container-item-heading-container-arrow"
+                    style={{
+                      transform: `rotate(${current_heading}deg)`,
+                    }}
+                  >
+                    &#x2B06;
+                  </div>
+                  {current_heading}&deg;
+                </div>
               </div>
               <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
                 <div>Ground Speed</div>
                 <div>{current_ground_speed} kts.</div>
               </div>
+            </div>
+            <div className="flight-data-details-flight-status">
+              <span className="flight-data-details-flight-status-line">
+                <span
+                  className="flight-data-details-flight-status-line-progress"
+                  style={{ width: percentageCompleted }}
+                >
+                  <img src="../images/airplane-icon.png" alt={callsign} />
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -189,8 +269,6 @@ function App() {
 
   const displayAirportData = () => {
     if (selectedAirport && displaySelectedAirport) {
-      console.log(selectedAirport);
-
       // const {
       //   callsign,
       //   real_name,
@@ -287,7 +365,8 @@ function App() {
                 );
 
                 if (foundFlight) {
-                  selectFlight(foundFlight, true);
+                  selectFlightFunc(foundFlight, true);
+                  setDisplaySelectedFlight(false);
                   setToggleNavigationMenu(false);
                 }
               }}
@@ -632,6 +711,20 @@ function App() {
   const navigateToAirport = (location) => {
     const { longitude, latitude } = location;
 
+    // Get the Departures for the Selected Airport from the Departures data.
+    const departures = flightData?.filter(
+      (departure) => location.icao === departure.planned_dep_airport__icao
+    );
+
+    // Get the Arrivals for the Selected Airport from the Active Flight data.
+    const arrivals = flightData?.filter(
+      (arrival) => location.icao === arrival.planned_dest_airport__icao
+    );
+
+    console.log(flightData);
+
+    console.log(arrivals);
+
     setViewport({
       ...viewport,
       longitude,
@@ -687,19 +780,19 @@ function App() {
     flight: ICluster,
     transitionToFlightLoc: boolean = false
   ) => {
-    const getSelectedFlightData: IFlightVatStatsDetails = await getFlight(
+    const selectedFlightData: IFlightVatStatsDetails = await getFlight(
       flight.properties.id
     );
 
-    const { current_latitude, current_longitude } = getSelectedFlightData;
+    const { current_latitude, current_longitude } = selectedFlightData;
 
-    setSelectedFlight(getSelectedFlightData);
+    setSelectedFlight(selectedFlightData);
 
     await getRoute(
       { latitude: current_latitude, longitude: current_longitude },
-      getSelectedFlightData.planned_dep_airport.icao,
-      getSelectedFlightData.planned_route,
-      getSelectedFlightData.planned_dest_airport.icao,
+      selectedFlightData.planned_dep_airport.icao,
+      selectedFlightData.planned_route,
+      selectedFlightData.planned_dest_airport.icao,
       transitionToFlightLoc
     );
   };
@@ -715,7 +808,10 @@ function App() {
     setDisplaySelectedAirport(false);
   }, []);
 
-  const selectFlightFunc = async (flight) => {
+  const selectFlightFunc = async (
+    flight,
+    transitionToFlightLoc: boolean = false
+  ) => {
     await setLoading(true);
 
     // Disable the Selected Flight to clear the screen and allow for the new selection to load togerther.
@@ -723,10 +819,14 @@ function App() {
       setSelectedFlight(null);
     }
 
-    await selectFlight(flight);
+    await selectFlight(flight, transitionToFlightLoc);
     await setLoading(false);
 
-    setDisplaySelectedFlight(true);
+    setDisplaySelectedAirport(false);
+
+    if (!transitionToFlightLoc) {
+      setDisplaySelectedFlight(true);
+    }
   };
 
   // Continue to retrieve Flight and Weather data every 15 seconds.
@@ -777,8 +877,6 @@ function App() {
       options: { radius: 75, maxZoom: 10 },
     });
   }, [clusterData, viewport.zoom]);
-
-  console.log(flightData);
 
   return (
     <ReactMapGL
@@ -848,6 +946,8 @@ function App() {
                   e.preventDefault();
 
                   selectFlightFunc(clusterObj);
+                  setDisplaySelectedFlight(false);
+                  // setDisplaySelectedFlight(true);
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.src = handleIcon(clusterObj, true);
