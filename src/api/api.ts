@@ -33,6 +33,14 @@ export const getWeather = async () => {
   );
 };
 
+export const getTAF = async (icao) => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/taf`, {
+    params: {
+      icao,
+    },
+  }).then((res) => res.data);
+};
+
 // Experimental VatStats
 export const getFlights = async () => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flights`).then(

@@ -11,6 +11,7 @@ import * as d3 from "d3-ease";
 import {
   fetchRoute,
   getDecodedFlightRoute,
+  getTAF,
   getWeather,
   getAirport,
   getAirports,
@@ -188,19 +189,17 @@ function App() {
       }%`;
 
       return (
-        <div className="flight-data flight-data-enabled">
-          <div className="flight-data-details">
-            <div className="flight-data-details-callsign-user">
+        <div className="info-window info-window-enabled">
+          <div className="info-window-details">
+            <div className="info-window-details-name">
               <div>
-                <h2>{callsign}</h2>{" "}
-                <span className="flight-data-details-callsign-user-divider">
-                  /
-                </span>{" "}
-                <h5>{real_name}</h5>
+                <h1>{callsign}</h1>{" "}
+                <span className="info-window-details-divider">/</span>{" "}
+                <h4>{real_name}</h4>
               </div>
 
               <div
-                className="flight-data-close"
+                className="info-window-close"
                 onClick={() => {
                   deselectFlight();
                 }}
@@ -249,14 +248,16 @@ function App() {
                 <div>{current_ground_speed} kts.</div>
               </div>
             </div>
-            <div className="flight-data-details-flight-status">
-              <span className="flight-data-details-flight-status-line">
+            <div className="info-window-details-flight-status">
+              <span className="info-window-details-flight-status-line">
+                <span className="info-window-details-flight-status-point info-window-details-flight-status-point-start"></span>
                 <span
-                  className="flight-data-details-flight-status-line-progress"
+                  className="info-window-details-flight-status-line-progress"
                   style={{ width: percentageCompleted }}
                 >
                   <img src="../images/airplane-icon.png" alt={callsign} />
                 </span>
+                <span className="info-window-details-flight-status-point info-window-details-flight-status-point-end"></span>
               </span>
             </div>
           </div>
@@ -264,39 +265,25 @@ function App() {
       );
     }
 
-    return <div className="flight-data"></div>;
+    return <div className="info-window"></div>;
   };
 
   const displayAirportData = () => {
     if (selectedAirport && displaySelectedAirport) {
-      // const {
-      //   callsign,
-      //   real_name,
-      //   current_altitude,
-      //   current_ground_speed,
-      //   current_heading,
-      //   planned_aircraft,
-      //   planned_dep_airport__icao,
-      //   planned_dep_airport__name,
-      //   planned_dest_airport__icao,
-      //   planned_dest_airport__name,
-      // } = selectedAirport;
+      const { icao, name } = selectedAirport;
 
       return (
-        <div className="airport-data airport-data-enabled">
-          Airport.
-          {/* <div className="flight-data-details">
-            <div className="flight-data-details-callsign-user">
+        <div className="info-window airport-data info-window-enabled">
+          <div className="info-window-details">
+            <div className="info-window-details-name">
               <div>
-                <h2>{callsign}</h2>{" "}
-                <span className="flight-data-details-callsign-user-divider">
-                  /
-                </span>{" "}
-                <h5>{real_name}</h5>
+                <h1>{icao}</h1>{" "}
+                <span className="info-window-details-divider">/</span>{" "}
+                <h4>{name}</h4>
               </div>
 
               <div
-                className="flight-data-close"
+                className="info-window-close"
                 onClick={() => {
                   deselectFlight();
                 }}
@@ -304,16 +291,20 @@ function App() {
                 X
               </div>
             </div>
-            <div className="grid-container">
-              <div className="grid-container-item grid-container-item-icao">
-                <div>{planned_dep_airport__icao}</div>
-                <div>{planned_dep_airport__name}</div>
+            <div className="grid-container grid-container-airport">
+              <div className="grid-container-item grid-container-airport-item">
+                <div>Conditions</div>
+                <div>weather</div>
               </div>
-              <div className="grid-container-item grid-container-item-icao">
-                <div>{planned_dest_airport__icao}</div>
-                <div>{planned_dest_airport__name}</div>
+              <div className="grid-container-item grid-container-airport-item">
+                <div>Temperature</div>
+                <div>weather</div>
               </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
+              <div className="grid-container-item grid-container-airport-item">
+                <div>Wind</div>
+                <div>weather</div>
+              </div>
+              {/* <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
                 <div>Equipment</div>
                 <div>{planned_aircraft}</div>
               </div>
@@ -328,14 +319,14 @@ function App() {
               <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
                 <div>Ground Speed</div>
                 <div>{current_ground_speed} kts.</div>
-              </div>
+              </div> */}
             </div>
-          </div> */}
+          </div>
         </div>
       );
     }
 
-    return <div className="airport-data"></div>;
+    return <div className="info-window"></div>;
   };
 
   // Navigation Menu
@@ -389,7 +380,7 @@ function App() {
                   {};
 
                 if (icaoRes) {
-                  const airportData = await getAirport(icaoRes["id"]);
+                  const airportData: IAirport = await getAirport(icaoRes["id"]);
 
                   navigateToAirport(airportData);
                   setSelectedAirport(airportData);
@@ -708,8 +699,12 @@ function App() {
     });
   };
 
-  const navigateToAirport = (location) => {
+  const navigateToAirport = async (location) => {
     const { longitude, latitude } = location;
+
+    const taf = await getTAF(location.icao);
+
+    console.log(taf);
 
     // Get the Departures for the Selected Airport from the Departures data.
     const departures = flightData?.filter(

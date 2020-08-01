@@ -74,7 +74,7 @@ h6 {
   }
 }
 
-.flight-data {
+.info-window {
   background-color: #3c3c3c;
   bottom: 40px;
   color: #fff;
@@ -98,7 +98,15 @@ h6 {
   &-details {
     flex: 1;
 
-    &-callsign-user {
+    h1 {
+      letter-spacing: 2px;
+    }
+
+    h4 {
+      color: #d8d8d8;
+    }
+
+    &-name {
       display: flex;
       background-color: rgb(107, 107, 107);
       justify-content: space-between;
@@ -112,10 +120,10 @@ h6 {
           padding: 0 8px 0 0;
         }
       }
+    }
 
-      &-divider {
-        font-size: $size-28;
-      }
+    &-divider {
+      font-size: $size-28;
     }
 
     .grid-container {
@@ -123,6 +131,14 @@ h6 {
       grid-template-columns: 25% 25% 25% auto;
       grid-gap: 2px;
       margin: 2px 0 0;
+
+      &-airport {
+        grid-template-columns: 33% 33% auto;
+
+        &-item {
+          grid-column: unset;
+        }
+      }
 
       &-item {
         background-color: rgb(70, 70, 70);
@@ -207,6 +223,23 @@ h6 {
       height: 40px;
       justify-content: center;
       margin: 5px 0 0;
+
+      &-point {
+        background-color: $clr-white;
+        border-radius: 50%;
+        height: 10px;
+        position: absolute;
+        margin: -7px;
+        width: 10px;
+
+        &-start {
+          left: 0;
+        }
+
+        &-end {
+          left: 100%;
+        }
+      }
 
       &-line {
         width: 90%;
@@ -316,7 +349,7 @@ h6 {
 }
 
 @media only screen and (max-width: 868px) {
-  .flight-data {
+  .info-window {
     right: calc(50% - 335px);
     width: 650px;
 
@@ -331,7 +364,7 @@ h6 {
 }
 
 @media only screen and (max-width: 700px) {
-  .flight-data {
+  .info-window {
     right: calc(9%);
     width: 80%;
 

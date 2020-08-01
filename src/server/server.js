@@ -29,6 +29,23 @@ const VAT_STATUS_BASE_URL = "https://beta-api.vatstats.net/external_api";
 //   );
 // });
 
+app.use("/api/taf", (req, res) => {
+  const { icao } = req.query;
+
+  const options = {
+    url: `https://api.checkwx.com/metar/${icao}/decoded`,
+    method: "GET",
+    headers: {
+      "X-API-Key": "d79e3822440e4ad285f0106d36",
+    },
+  };
+
+  request(options, (error, response, body) => {
+    console.log(body);
+    body ? res.send(body) : res.send(null);
+  });
+});
+
 app.use("/api/flights", (req, res) => {
   const options = {
     url: `${VAT_STATUS_BASE_URL}/home_page/`,
