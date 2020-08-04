@@ -249,7 +249,81 @@ export interface IClusterProperties
   point_count: number;
 }
 
-export interface IAirport {
+export interface ITAF {
+  wind: {
+    degrees: number;
+    speed_kts: number;
+    speed_mph: number;
+    speed_mps: number;
+    speed_kph: number;
+  };
+  temperature: {
+    celsius: number;
+    fahrenheit: number;
+  };
+  dewpoint: {
+    celsius: number;
+    fahrenheit: number;
+  };
+  humidity: {
+    percent: number;
+  };
+  barometer: {
+    hg: number;
+    hpa: number;
+    kpa: number;
+    mb: number;
+  };
+  visibility: {
+    miles: string;
+    miles_float: number;
+    meters: string;
+    meters_float: number;
+  };
+  elevation: {
+    feet: number;
+    meters: number;
+  };
+  location: {
+    coordinates: number[];
+    type: string;
+  };
+  icao: string;
+  station: {
+    name: string;
+  };
+  raw_text: string;
+  observed: string;
+  flight_category: string;
+  clouds: [
+    {
+      code: string;
+      text: string;
+      feet: number;
+      meters: number;
+      base_feet_agl: number;
+      base_meters_agl: number;
+    },
+    {
+      code: string;
+      text: string;
+      feet: number;
+      meters: number;
+      base_feet_agl: number;
+      base_meters_agl: number;
+    }
+  ];
+  conditions: [
+    {
+      prefix: string;
+      code: string;
+      text: string;
+    }
+  ];
+  id: null;
+}
+
+export interface IAirport extends ITAF {
   arrival_count: number;
   atis: string;
   country: string;
@@ -297,8 +371,4 @@ export interface IAirport {
   municipality: string;
   name: string;
   region: string;
-}
-
-interface IIcaos {
-  icaos: object[];
 }

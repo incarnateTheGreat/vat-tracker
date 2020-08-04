@@ -25,6 +25,7 @@ import {
   IViewport,
   IFlightVatStatsDetails,
   IFlightVatStats,
+  ITAF,
 } from "./declaration/app";
 import {
   assembleClusterData,
@@ -250,14 +251,12 @@ function App() {
             </div>
             <div className="info-window-details-flight-status">
               <span className="info-window-details-flight-status-line">
-                <span className="info-window-details-flight-status-point info-window-details-flight-status-point-start"></span>
                 <span
                   className="info-window-details-flight-status-line-progress"
                   style={{ width: percentageCompleted }}
                 >
                   <img src="../images/airplane-icon.png" alt={callsign} />
                 </span>
-                <span className="info-window-details-flight-status-point info-window-details-flight-status-point-end"></span>
               </span>
             </div>
           </div>
@@ -270,7 +269,18 @@ function App() {
 
   const displayAirportData = () => {
     if (selectedAirport && displaySelectedAirport) {
-      const { icao, name } = selectedAirport;
+      const {
+        icao,
+        name,
+        observed,
+        wind,
+        flight_category,
+        visibility,
+        clouds,
+        dewpoint,
+        barometer,
+        raw_text,
+      } = selectedAirport;
 
       return (
         <div className="info-window airport-data info-window-enabled">
@@ -292,34 +302,78 @@ function App() {
               </div>
             </div>
             <div className="grid-container grid-container-airport">
-              <div className="grid-container-item grid-container-airport-item">
-                <div>Conditions</div>
-                <div>weather</div>
+              <div className="grid-container-airport-item">
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Observed
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    {observed}
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Flight Rules
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    {flight_category}
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">Wind</div>
+                  <div className="grid-container-airport-item-data">
+                    {wind.degrees}&deg; at {wind.speed_kts} KTS
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Visibility
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    {visibility.miles} miles
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Clouds
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    (clouds)
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Dewpoint
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    {dewpoint.celsius} &deg;C / {dewpoint.fahrenheit} &deg;F
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Altimeter
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    {barometer.hg} Hg
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">
+                    Pressure
+                  </div>
+                  <div className="grid-container-airport-item-data">
+                    {barometer.hpa} hPa
+                  </div>
+                </div>
+                <div>
+                  <div className="grid-container-airport-item-title">METAR</div>
+                  <div className="grid-container-airport-item-data">
+                    {raw_text}
+                  </div>
+                </div>
               </div>
-              <div className="grid-container-item grid-container-airport-item">
-                <div>Temperature</div>
-                <div>weather</div>
-              </div>
-              <div className="grid-container-item grid-container-airport-item">
-                <div>Wind</div>
-                <div>weather</div>
-              </div>
-              {/* <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
-                <div>Equipment</div>
-                <div>{planned_aircraft}</div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-altitude">
-                <div>Altitude</div>
-                <div>{current_altitude} ft.</div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-heading">
-                <div>Heading</div>
-                <div>{current_heading}&deg;</div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
-                <div>Ground Speed</div>
-                <div>{current_ground_speed} kts.</div>
-              </div> */}
+
+              <div className="grid-container-airport-weather">weather</div>
             </div>
           </div>
         </div>
@@ -380,11 +434,19 @@ function App() {
                   {};
 
                 if (icaoRes) {
-                  const airportData: IAirport = await getAirport(icaoRes["id"]);
+                  let airportData = await getAirport(icaoRes["id"]);
+                  const taf: ITAF = await getTAF(airportData.icao).then(
+                    (res) => res.data[0]
+                  );
+
+                  airportData = { ...airportData, ...taf };
+
+                  console.log(taf);
 
                   navigateToAirport(airportData);
                   setSelectedAirport(airportData);
                   setDisplaySelectedAirport(true);
+                  deselectFlight();
                   setToggleNavigationMenu(false);
                 }
               }}
@@ -702,9 +764,7 @@ function App() {
   const navigateToAirport = async (location) => {
     const { longitude, latitude } = location;
 
-    const taf = await getTAF(location.icao);
-
-    console.log(taf);
+    const offset = 0.095;
 
     // Get the Departures for the Selected Airport from the Departures data.
     const departures = flightData?.filter(
@@ -722,7 +782,7 @@ function App() {
 
     setViewport({
       ...viewport,
-      longitude,
+      longitude: longitude + offset,
       latitude,
       zoom: 12,
       transitionDuration: 2000,

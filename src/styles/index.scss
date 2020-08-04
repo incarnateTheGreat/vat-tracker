@@ -51,29 +51,6 @@ h6 {
   }
 }
 
-.airport-data {
-  background-color: #3c3c3c;
-  bottom: 40px;
-  color: #fff;
-  display: flex;
-  justify-content: space-between;
-  height: 210px;
-  margin-bottom: -40%;
-  opacity: 1;
-  padding: 10px;
-  position: absolute;
-  transition: 0.2s ease-in-out;
-  right: calc(50% - 400px);
-  visibility: hidden;
-  width: 800px;
-  z-index: 10000;
-
-  &-enabled {
-    margin-bottom: 0;
-    visibility: visible;
-  }
-}
-
 .info-window {
   background-color: #3c3c3c;
   bottom: 40px;
@@ -89,6 +66,12 @@ h6 {
   visibility: hidden;
   width: 800px;
   z-index: 10000;
+
+  &.airport-data {
+    height: 90%;
+    right: calc(25% - 240px);
+    width: 50%;
+  }
 
   &-enabled {
     margin-bottom: 0;
@@ -133,10 +116,40 @@ h6 {
       margin: 2px 0 0;
 
       &-airport {
-        grid-template-columns: 33% 33% auto;
+        grid-template-columns: 60% auto;
 
         &-item {
-          grid-column: unset;
+          font-size: 1rem;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+
+          font-size: $size-16;
+          grid-gap: 2px;
+          background: red;
+
+          & > div {
+            background-color: rgba(255, 255, 255, 0.8);
+            color: $clr-black;
+            display: grid;
+            grid-column: 1/3;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 0.5em;
+            text-align: center;
+          }
+
+          &-title {
+            padding: 0 0 0 10px;
+            text-align: left;
+          }
+
+          &-data {
+            padding: 0 10px 0 0;
+            text-align: right;
+          }
+        }
+
+        &-weather {
+          background: transparent;
         }
       }
 
@@ -224,23 +237,6 @@ h6 {
       justify-content: center;
       margin: 5px 0 0;
 
-      &-point {
-        background-color: $clr-white;
-        border-radius: 50%;
-        height: 10px;
-        position: absolute;
-        margin: -7px;
-        width: 10px;
-
-        &-start {
-          left: 0;
-        }
-
-        &-end {
-          left: 100%;
-        }
-      }
-
       &-line {
         width: 90%;
         border: 0;
@@ -254,6 +250,7 @@ h6 {
           padding: 0;
           position: absolute;
           margin: -3px;
+          transition: all 0.5s ease-in-out;
           width: 0;
 
           img {

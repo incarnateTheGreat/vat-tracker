@@ -101,7 +101,7 @@ export const Autocomplete = (props) => {
   };
 
   const sortItems = (e) => {
-    const query = inputRef.current.value.toUpperCase();
+    const query = selectedValue;
 
     // When hitting the 'Enter' key, this will push whatever input there is into the list.
     if (e.key === "Enter" && query.length > 0) {
@@ -170,11 +170,13 @@ export const Autocomplete = (props) => {
     <div className="autocomplete">
       <input
         onChange={(event) => {
-          setSelectedValue(event.target.value.toUpperCase());
-          handleSearch(event.target.value.toUpperCase());
+          const query = event.target.value.toUpperCase();
+
+          setSelectedValue(query);
+          handleSearch(query);
 
           if (callback) {
-            callback(event.target.value.toUpperCase());
+            callback(query);
           }
         }}
         disabled={loading}
