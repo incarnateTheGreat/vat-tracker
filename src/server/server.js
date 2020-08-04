@@ -41,7 +41,6 @@ app.use("/api/taf", (req, res) => {
   };
 
   request(options, (error, response, body) => {
-    console.log(body);
     body ? res.send(body) : res.send(null);
   });
 });

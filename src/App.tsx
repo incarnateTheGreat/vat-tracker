@@ -11,10 +11,7 @@ import * as d3 from "d3-ease";
 import {
   fetchRoute,
   getDecodedFlightRoute,
-  getTAF,
   getWeather,
-  getAirport,
-  getAirports,
   getFlights,
   getFlight,
 } from "./api/api";
@@ -25,7 +22,6 @@ import {
   IViewport,
   IFlightVatStatsDetails,
   IFlightVatStats,
-  ITAF,
 } from "./declaration/app";
 import {
   assembleClusterData,
@@ -33,7 +29,11 @@ import {
   getTypeOfAircraft,
   getTypeOfAircraftSelected,
 } from "./helpers/utils";
-import { Autocomplete } from "./components/Autocomplete/autocomplete.component";
+
+// Components
+import { AirportData } from "./components/AirportData/airport-data.component";
+import { FlightData } from "./components/FlightData/flight-data.component";
+import { NavigationMenu } from "./components/NavigationMenu/navigation-menu.component";
 import { Spinner } from "./components/Spinner/spinner.component";
 
 function App() {
@@ -117,350 +117,6 @@ function App() {
       }),
       transitionDuration: 500,
     });
-  };
-
-  // View a Flight's details.
-  const displayFlightDataView = () => {
-    const isStillSelected = checkStillActive();
-
-    if (selectedFlight && displaySelectedFlight && isStillSelected) {
-      const {
-        callsign,
-        real_name,
-        current_altitude,
-        current_latitude,
-        current_longitude,
-        current_ground_speed,
-        current_heading,
-        planned_aircraft,
-        planned_dep_airport__icao,
-        planned_dep_airport__name,
-        planned_dest_airport__icao,
-        planned_dest_airport__name,
-      } = isStillSelected;
-
-      const getDistanceInKM = (setPoint, destPoint) => {
-        const { lat1, lon1 } = setPoint;
-        const { lat2, lon2 } = destPoint;
-
-        const R = 6371; // Radius of the earth in km
-        const dLat = deg2rad(lat2 - lat1); // deg2rad below
-        const dLon = deg2rad(lon2 - lon1);
-
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(deg2rad(lat1)) *
-            Math.cos(deg2rad(lat2)) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-        return R * c; // Distance in km
-      };
-
-      const deg2rad = (deg) => {
-        return deg * (Math.PI / 180);
-      };
-
-      // Get remaining distance.
-      const totalDistance = getDistanceInKM(
-        { lat1: current_latitude, lon1: current_longitude },
-        {
-          lat2: selectedFlight.planned_dest_airport.latitude,
-          lon2: selectedFlight.planned_dest_airport.longitude,
-        }
-      );
-
-      // Get total distance.
-      const remainingDistance = getDistanceInKM(
-        {
-          lat1: selectedFlight.planned_dep_airport.latitude,
-          lon1: selectedFlight.planned_dep_airport.longitude,
-        },
-        {
-          lat2: selectedFlight.planned_dest_airport.latitude,
-          lon2: selectedFlight.planned_dest_airport.longitude,
-        }
-      );
-
-      // Assemble the Percentage Completed value.
-      const percentageCompleted = `${
-        100 - Math.round((totalDistance / remainingDistance) * 100)
-      }%`;
-
-      return (
-        <div className="info-window info-window-enabled">
-          <div className="info-window-details">
-            <div className="info-window-details-name">
-              <div>
-                <h1>{callsign}</h1>{" "}
-                <span className="info-window-details-divider">/</span>{" "}
-                <h4>{real_name}</h4>
-              </div>
-
-              <div
-                className="info-window-close"
-                onClick={() => {
-                  deselectFlight();
-                }}
-              >
-                X
-              </div>
-            </div>
-            <div className="grid-container">
-              <div className="grid-container-item grid-container-item-icao">
-                <div>{planned_dep_airport__icao}</div>
-                <div>{planned_dep_airport__name}</div>
-              </div>
-              <div className="grid-container-item grid-container-item-icao">
-                <div>{planned_dest_airport__icao}</div>
-                <img
-                  className="grid-container-item-icao-plane-to"
-                  src="../images/airplane-icon.png"
-                  alt="To"
-                />
-                <div>{planned_dest_airport__name}</div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
-                <div>Equipment</div>
-                <div>{planned_aircraft}</div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-altitude">
-                <div>Altitude</div>
-                <div>{current_altitude} ft.</div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-heading">
-                <div>Heading</div>
-                <div className="grid-container-item-heading-container">
-                  <div
-                    className="grid-container-item-heading-container-arrow"
-                    style={{
-                      transform: `rotate(${current_heading}deg)`,
-                    }}
-                  >
-                    &#x2B06;
-                  </div>
-                  {current_heading}&deg;
-                </div>
-              </div>
-              <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
-                <div>Ground Speed</div>
-                <div>{current_ground_speed} kts.</div>
-              </div>
-            </div>
-            <div className="info-window-details-flight-status">
-              <span className="info-window-details-flight-status-line">
-                <span
-                  className="info-window-details-flight-status-line-progress"
-                  style={{ width: percentageCompleted }}
-                >
-                  <img src="../images/airplane-icon.png" alt={callsign} />
-                </span>
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return <div className="info-window"></div>;
-  };
-
-  const displayAirportData = () => {
-    if (selectedAirport && displaySelectedAirport) {
-      const {
-        icao,
-        name,
-        observed,
-        wind,
-        flight_category,
-        visibility,
-        clouds,
-        dewpoint,
-        barometer,
-        raw_text,
-      } = selectedAirport;
-
-      return (
-        <div className="info-window airport-data info-window-enabled">
-          <div className="info-window-details">
-            <div className="info-window-details-name">
-              <div>
-                <h1>{icao}</h1>{" "}
-                <span className="info-window-details-divider">/</span>{" "}
-                <h4>{name}</h4>
-              </div>
-
-              <div
-                className="info-window-close"
-                onClick={() => {
-                  deselectFlight();
-                }}
-              >
-                X
-              </div>
-            </div>
-            <div className="grid-container grid-container-airport">
-              <div className="grid-container-airport-item">
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Observed
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    {observed}
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Flight Rules
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    {flight_category}
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">Wind</div>
-                  <div className="grid-container-airport-item-data">
-                    {wind.degrees}&deg; at {wind.speed_kts} KTS
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Visibility
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    {visibility.miles} miles
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Clouds
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    (clouds)
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Dewpoint
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    {dewpoint.celsius} &deg;C / {dewpoint.fahrenheit} &deg;F
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Altimeter
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    {barometer.hg} Hg
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">
-                    Pressure
-                  </div>
-                  <div className="grid-container-airport-item-data">
-                    {barometer.hpa} hPa
-                  </div>
-                </div>
-                <div>
-                  <div className="grid-container-airport-item-title">METAR</div>
-                  <div className="grid-container-airport-item-data">
-                    {raw_text}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid-container-airport-weather">weather</div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return <div className="info-window"></div>;
-  };
-
-  // Navigation Menu
-  const navigationMenu = () => {
-    if (toggleNavigationMenu) {
-      return (
-        <div
-          className={`navigation-menu ${
-            toggleNavigationMenu ? "navigation-menu-enabled" : ""
-          }`}
-        >
-          <div className="navigation-menu-top">
-            <h2>Vat-Tracker</h2>
-            <div
-              className="navigation-menu-close"
-              onClick={() => setToggleNavigationMenu(false)}
-            >
-              X
-            </div>
-          </div>
-
-          <nav className="navigation-menu-links">
-            <Autocomplete
-              onSelect={(callsign) => {
-                const foundFlight = clusterData.find(
-                  (flight: ICluster) => flight.properties.callsign === callsign
-                );
-
-                if (foundFlight) {
-                  selectFlightFunc(foundFlight, true);
-                  setDisplaySelectedFlight(false);
-                  setToggleNavigationMenu(false);
-                }
-              }}
-              placeholder="Search for Callsign"
-              searchCompareValue="properties.callsign"
-              selectionData={clusterData}
-            />
-
-            <Autocomplete
-              callback={async (value) => {
-                setIcaoInput(value);
-
-                const icaoRes = await getAirports(value);
-
-                setIcaoData(icaoRes.results ?? []);
-              }}
-              onSelect={async (callsign) => {
-                const icaoRes =
-                  icaoData.find((icaoObj) => icaoObj["icao"] === callsign) ||
-                  {};
-
-                if (icaoRes) {
-                  let airportData = await getAirport(icaoRes["id"]);
-                  const taf: ITAF = await getTAF(airportData.icao).then(
-                    (res) => res.data[0]
-                  );
-
-                  airportData = { ...airportData, ...taf };
-
-                  console.log(taf);
-
-                  navigateToAirport(airportData);
-                  setSelectedAirport(airportData);
-                  setDisplaySelectedAirport(true);
-                  deselectFlight();
-                  setToggleNavigationMenu(false);
-                }
-              }}
-              placeholder="Search for ICAO"
-              searchCompareValue="icao"
-              selectionData={icaoData}
-              usesService={true}
-            />
-          </nav>
-        </div>
-      );
-    }
-
-    return <div className="navigation-menu"></div>;
   };
 
   // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
@@ -852,7 +508,7 @@ function App() {
     );
   };
 
-  const deselectFlight = useCallback(() => {
+  const deselectFlightFunc = useCallback(() => {
     setSelectedFlight(null);
     setDisplaySelectedFlight(false);
     removeRoute();
@@ -884,6 +540,15 @@ function App() {
     }
   };
 
+  // Go through the process of Selecting an Airport.
+  const selectAirportFunc = (airportData) => {
+    navigateToAirport(airportData);
+    setSelectedAirport(airportData);
+    setDisplaySelectedAirport(true);
+    deselectFlightFunc();
+    setToggleNavigationMenu(false);
+  };
+
   // Continue to retrieve Flight and Weather data every 15 seconds.
   useInterval(() => {
     handleGetFlightData();
@@ -892,9 +557,9 @@ function App() {
 
   useEffect(() => {
     if (!checkStillActive()) {
-      deselectFlight();
+      deselectFlightFunc();
     }
-  }, [checkStillActive, clusterData, drawRoute, deselectFlight]);
+  }, [checkStillActive, clusterData, drawRoute, deselectFlightFunc]);
 
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
@@ -903,7 +568,7 @@ function App() {
 
     const listener = (e) => {
       if (e.key === "Escape") {
-        deselectFlight();
+        deselectFlightFunc();
         deselectAirport();
       }
     };
@@ -913,7 +578,7 @@ function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, [handleGetFlightData, drawRoute, getUpdatedWeather, deselectFlight]);
+  }, [handleGetFlightData, drawRoute, getUpdatedWeather, deselectFlightFunc]);
 
   useInterval(() => {
     handleGetFlightData();
@@ -948,14 +613,6 @@ function App() {
       }}
       ref={mapRef}
     >
-      <div className="navigation-control">
-        <NavigationControl />
-      </div>
-      <Spinner isEnabled={loading} />
-      <div className={`no-data ${!flightData && "no-data-enabled"}`.trim()}>
-        No data.
-      </div>
-
       {flightData &&
         clusters.map((clusterObj: ICluster) => {
           const [longitude, latitude] = clusterObj.geometry.coordinates;
@@ -1002,7 +659,6 @@ function App() {
 
                   selectFlightFunc(clusterObj);
                   setDisplaySelectedFlight(false);
-                  // setDisplaySelectedFlight(true);
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.src = handleIcon(clusterObj, true);
@@ -1030,9 +686,44 @@ function App() {
         />
       }
 
-      {navigationMenu()}
-      {displayFlightDataView()}
-      {displayAirportData()}
+      <div className="navigation-control">
+        <NavigationControl />
+      </div>
+
+      <Spinner isEnabled={loading} />
+
+      <div className={`no-data ${!flightData && "no-data-enabled"}`.trim()}>
+        No data.
+      </div>
+
+      <NavigationMenu
+        toggleNavigationMenu={toggleNavigationMenu}
+        clusterData={clusterData}
+        setToggleNavigationMenu={setToggleNavigationMenu}
+        selectFlightFunc={selectFlightFunc}
+        setDisplaySelectedFlight={setDisplaySelectedFlight}
+        setIcaoInput={setIcaoInput}
+        setIcaoData={setIcaoData}
+        selectAirportFunc={selectAirportFunc}
+        icaoData={icaoData}
+      />
+
+      {selectedFlight && (
+        <FlightData
+          selectedFlight={selectedFlight}
+          displaySelectedFlight={displaySelectedFlight}
+          checkStillActive={checkStillActive}
+          deselectFlightFunc={deselectFlightFunc}
+        />
+      )}
+
+      {selectedAirport && (
+        <AirportData
+          deselectFlightFunc={deselectFlightFunc}
+          selectedAirport={selectedAirport}
+          displaySelectedAirport={displaySelectedAirport}
+        />
+      )}
     </ReactMapGL>
   );
 }
