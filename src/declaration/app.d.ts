@@ -250,80 +250,200 @@ export interface IClusterProperties
 }
 
 export interface ITAF {
-  wind: {
-    degrees: number;
-    speed_kts: number;
-    speed_mph: number;
-    speed_mps: number;
-    speed_kph: number;
+  meta: {
+    timestamp: string;
+    stations_updated: string;
   };
-  temperature: {
-    celsius: number;
-    fahrenheit: number;
+  raw: string;
+  station: string;
+  time: {
+    repr: string;
+    dt: string;
   };
-  dewpoint: {
-    celsius: number;
-    fahrenheit: number;
-  };
-  humidity: {
-    percent: number;
-  };
-  barometer: {
-    hg: number;
-    hpa: number;
-    kpa: number;
-    mb: number;
-  };
-  visibility: {
-    miles: string;
-    miles_float: number;
-    meters: string;
-    meters_float: number;
-  };
-  elevation: {
-    feet: number;
-    meters: number;
-  };
-  location: {
-    coordinates: number[];
-    type: string;
-  };
-  icao: string;
-  station: {
-    name: string;
-  };
-  raw_text: string;
-  observed: string;
-  flight_category: string;
-  clouds: [
+  remarks: string;
+  forecast: [
     {
-      code: string;
-      text: string;
-      feet: number;
-      meters: number;
-      base_feet_agl: number;
-      base_meters_agl: number;
-    },
-    {
-      code: string;
-      text: string;
-      feet: number;
-      meters: number;
-      base_feet_agl: number;
-      base_meters_agl: number;
+      altimeter: string;
+      clouds: [
+        {
+          repr: string;
+          type: string;
+          altitude: number;
+          modifier: string;
+          direction: string;
+        },
+        {
+          repr: string;
+          type: string;
+          altitude: number;
+          modifier: string;
+          direction: string;
+        }
+      ];
+      flight_rules: string;
+      other: object;
+      sanitized: string;
+      visibility: {
+        repr: string;
+        value: number;
+        spoken: string;
+      };
+      wind_direction: {
+        repr: string;
+        value: number;
+        spoken: string;
+      };
+      wind_gust: string;
+      wind_speed: {
+        repr: string;
+        value: number;
+        spoken: string;
+      };
+      wx_codes: [
+        {
+          repr: string;
+          value: string;
+        }
+      ];
+      end_time: {
+        repr: string;
+        dt: string;
+      };
+      icing: object;
+      probability: string;
+      raw: string;
+      start_time: {
+        repr: string;
+        dt: string;
+      };
+      transition_start: string;
+      turbulence: object;
+      type: string;
+      wind_shear: string;
     }
   ];
-  conditions: [
-    {
-      prefix: string;
-      code: string;
-      text: string;
-    }
-  ];
-  id: null;
+  start_time: {
+    repr: string;
+    dt: string;
+  };
+  end_time: {
+    repr: string;
+    dt: string;
+  };
+  max_temp: string;
+  min_temp: string;
+  alts: string;
+  temps: string;
+  units: {
+    altimeter: string;
+    altitude: string;
+    temperature: string;
+    visibility: string;
+    wind_speed: string;
+  };
 }
 
-export interface IAirport extends ITAF {
+export interface IMetar {
+  issued: string;
+  report: string;
+  available: true;
+  decoded: {
+    main: [
+      {
+        Identifier: [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        "Time Issued": [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        Wind: [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        Visibility: [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        "Prevailing Visibility": [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        Clouds: [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        Temperature: [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+        Pressure: [
+          {
+            decodeResult: string;
+            description: string;
+            originalChunk: string;
+            stringOffset: {
+              start: number;
+              end: number;
+            };
+          }
+        ];
+      }
+    ];
+  };
+}
+
+export interface IAirport extends ITAF, IMetar {
   arrival_count: number;
   atis: string;
   country: string;

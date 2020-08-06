@@ -41,6 +41,14 @@ export const getTAF = async (icao) => {
   }).then((res) => res.data);
 };
 
+export const getMETAR = async (icao) => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/metar`, {
+    params: {
+      icao,
+    },
+  }).then((res) => res.data);
+};
+
 // Experimental VatStats
 export const getFlights = async () => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flights`).then(

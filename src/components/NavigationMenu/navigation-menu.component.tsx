@@ -1,6 +1,6 @@
 import React from "react";
-import { getTAF, getAirport, getAirports } from "../../api/api";
-import { ICluster, ITAF } from "../../declaration/app";
+import { getAirports } from "../../api/api";
+import { ICluster } from "../../declaration/app";
 import { Autocomplete } from "../Autocomplete/autocomplete.component";
 
 export const NavigationMenu = ({
@@ -62,14 +62,7 @@ export const NavigationMenu = ({
                 icaoData.find((icaoObj) => icaoObj["icao"] === callsign) || {};
 
               if (icaoRes) {
-                let airportData = await getAirport(icaoRes["id"]);
-                const taf: ITAF = await getTAF(airportData.icao).then(
-                  (res) => res.data[0]
-                );
-
-                airportData = { ...airportData, ...taf };
-
-                selectAirportFunc(airportData);
+                selectAirportFunc(icaoRes.id);
               }
             }}
             placeholder="Search for ICAO"

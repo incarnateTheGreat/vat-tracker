@@ -100,7 +100,7 @@ export const drawWeatherLayer = (map, timestamp) => {
   });
 };
 
-export const metarAbbreviations = {
+export const metarConditionAbbr = {
   B: "Began",
   BC: "Patches",
   BL: "Blowing",
@@ -134,4 +134,13 @@ export const metarAbbreviations = {
   UP: "Unknown Precipitation",
   VA: "Volcanic Ash",
   VC: "In the Vicinity",
+};
+
+export const metarCloudAbbr = {
+  SKC: "Clear", // used worldwide but in North America is used to indicate a human generated report[14][15]
+  CLR: "No Clouds", // below 12,000 ft (3,700 m) (U.S.) or 25,000 ft (7,600 m) (Canada) used mainly within North America and indicates a station that is at least partly automated[14][15]
+  FEW: "Few", // 1–2 oktas
+  SCT: "Scattered", // = 3–4 oktas
+  BKN: "Broken", // 5–7 oktas
+  OVC: "Overcast", // 8 oktas, i.e., full cloud coverage
 };

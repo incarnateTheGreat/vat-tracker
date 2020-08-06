@@ -14,30 +14,28 @@ app.listen(8000, () => {
 
 const VAT_STATUS_BASE_URL = "https://beta-api.vatstats.net/external_api";
 
-// app.use("/api/metar/:metar", (req, res) => {
-//   const metar = req.params["metar"].toUpperCase();
-
-//   request(
-//     `http://metar.vatsim.net/metar.php?id=${metar}`,
-//     (error, response, body) => {
-//       if (body.includes("No METAR available")) {
-//         res.send(null);
-//       } else {
-//         res.send(body);
-//       }
-//     }
-//   );
-// });
-
 app.use("/api/taf", (req, res) => {
   const { icao } = req.query;
 
   const options = {
-    url: `https://api.checkwx.com/metar/${icao}/decoded`,
+    url: `https://avwx.rest/api/taf/${icao}?options=summary&airport=true&reporting=true&format=json&onfail=cache`,
     method: "GET",
     headers: {
-      "X-API-Key": "d79e3822440e4ad285f0106d36",
+      Authorization: "kwPLOxkqMaHfwkKNPWmRZgsiN58T8M-Z6X2S4yfmv84",
     },
+  };
+
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
+
+app.use("/api/metar", (req, res) => {
+  const { icao } = req.query;
+
+  const options = {
+    url: `https://api.metarreader.com/web/weather/${icao}`,
+    method: "GET",
   };
 
   request(options, (error, response, body) => {

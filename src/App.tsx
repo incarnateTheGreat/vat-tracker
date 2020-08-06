@@ -8,21 +8,31 @@ import ReactMapGL, {
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
 
+// APIs
 import {
   fetchRoute,
+  getAirport,
   getDecodedFlightRoute,
+  getMETAR,
+  getTAF,
   getWeather,
   getFlights,
   getFlight,
 } from "./api/api";
+
+// Interfaces
 import {
   IAirport,
   ICluster,
   IClusterDetails,
+  IMetar,
+  ITAF,
   IViewport,
   IFlightVatStatsDetails,
   IFlightVatStats,
 } from "./declaration/app";
+
+// Utilities
 import {
   assembleClusterData,
   drawWeatherLayer,
@@ -508,22 +518,25 @@ function App() {
     );
   };
 
+  // Deselect the Flight.
   const deselectFlightFunc = useCallback(() => {
     setSelectedFlight(null);
     setDisplaySelectedFlight(false);
     removeRoute();
   }, []);
 
-  const deselectAirport = useCallback(() => {
+  // Deselect the Airport.
+  const deselectAirportFunc = useCallback(() => {
     setSelectedAirport(null);
     setDisplaySelectedAirport(false);
   }, []);
 
+  // Select the Flight.
   const selectFlightFunc = async (
     flight,
     transitionToFlightLoc: boolean = false
   ) => {
-    await setLoading(true);
+    setLoading(true);
 
     // Disable the Selected Flight to clear the screen and allow for the new selection to load togerther.
     if (selectedFlight) {
@@ -531,7 +544,8 @@ function App() {
     }
 
     await selectFlight(flight, transitionToFlightLoc);
-    await setLoading(false);
+
+    setLoading(false);
 
     setDisplaySelectedAirport(false);
 
@@ -541,12 +555,30 @@ function App() {
   };
 
   // Go through the process of Selecting an Airport.
-  const selectAirportFunc = (airportData) => {
-    navigateToAirport(airportData);
+  const selectAirportFunc = async (icao) => {
+    deselectFlightFunc();
+    deselectAirportFunc();
+    setToggleNavigationMenu(false);
+    setLoading(true);
+
+    let airportData = await getAirport(icao);
+    const taf: ITAF = await getTAF(airportData.icao);
+    const metar: IMetar = await getMETAR(airportData.icao);
+
+    airportData = {
+      ...airportData,
+      weather: {
+        ...taf,
+        ...metar["M"]["decoded"],
+        metar_raw: metar["M"]["report"],
+      },
+    };
+
+    await navigateToAirport(airportData);
+
+    setLoading(false);
     setSelectedAirport(airportData);
     setDisplaySelectedAirport(true);
-    deselectFlightFunc();
-    setToggleNavigationMenu(false);
   };
 
   // Continue to retrieve Flight and Weather data every 15 seconds.
@@ -569,7 +601,7 @@ function App() {
     const listener = (e) => {
       if (e.key === "Escape") {
         deselectFlightFunc();
-        deselectAirport();
+        deselectAirportFunc();
       }
     };
 
@@ -578,7 +610,13 @@ function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, [handleGetFlightData, drawRoute, getUpdatedWeather, deselectFlightFunc]);
+  }, [
+    handleGetFlightData,
+    drawRoute,
+    getUpdatedWeather,
+    deselectFlightFunc,
+    deselectAirportFunc,
+  ]);
 
   useInterval(() => {
     handleGetFlightData();
@@ -719,7 +757,7 @@ function App() {
 
       {selectedAirport && (
         <AirportData
-          deselectFlightFunc={deselectFlightFunc}
+          deselectAirportFunc={deselectAirportFunc}
           selectedAirport={selectedAirport}
           displaySelectedAirport={displaySelectedAirport}
         />
