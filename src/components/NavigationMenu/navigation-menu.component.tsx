@@ -39,7 +39,7 @@ export const NavigationMenu = ({
               );
 
               if (foundFlight) {
-                selectFlightFunc(foundFlight, true);
+                selectFlightFunc(foundFlight.properties.id, true);
                 setDisplaySelectedFlight(false);
                 setToggleNavigationMenu(false);
               }
@@ -56,6 +56,8 @@ export const NavigationMenu = ({
               const icaoRes = await getAirports(value);
 
               setIcaoData(icaoRes.results ?? []);
+
+              return icaoRes.results ?? [];
             }}
             onSelect={async (callsign) => {
               const icaoRes =

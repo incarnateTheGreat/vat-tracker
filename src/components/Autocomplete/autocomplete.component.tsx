@@ -19,6 +19,8 @@ export const Autocomplete = (props) => {
   const inputRef = createRef<any>();
   const resultRef = createRef<any>();
 
+  let delayTimer;
+
   const getValue = (name, obj) => {
     if (obj) {
       const arr = name.split(".");
@@ -33,18 +35,14 @@ export const Autocomplete = (props) => {
   };
 
   const handleSearch = useCallback(
-    async (query) => {
+    async (query, overrideItemData?) => {
+      const itemData = overrideItemData ?? items;
       let sortedResultLocal = [];
 
-      // Set the Loading Icon for referencing data via a Service.
-      if (query.length >= minQueryLength && usesService) {
-        setLoading(true);
-      }
-
       // If the Items' children are objects, then filter and map out results. Otherwise, treat the Items as a one-dimensional Array.
-      if (Object.keys(items).length > 0 && query.length >= minQueryLength) {
-        if (typeof items[0] === "object") {
-          sortedResultLocal = items
+      if (Object.keys(itemData).length > 0 && query.length >= minQueryLength) {
+        if (typeof itemData[0] === "object") {
+          sortedResultLocal = itemData
             .filter((item: object) => {
               const regex = new RegExp(query, "gi");
 
@@ -52,7 +50,7 @@ export const Autocomplete = (props) => {
             })
             .map((obj) => getValue(searchCompareValue, obj));
         } else {
-          sortedResultLocal = items.filter((item: string) => {
+          sortedResultLocal = itemData.filter((item: string) => {
             const regex = new RegExp(query, "gi");
 
             return item.match(regex);
@@ -60,14 +58,14 @@ export const Autocomplete = (props) => {
         }
       }
 
-      // Toggle the "No Results" display if the search yields no results.
+      // // Toggle the "No Results" display if the search yields no results.
       sortedResultLocal.length === 0 && query.length >= minQueryLength
         ? setNoResults(true)
         : setNoResults(false);
 
       setSortedResult(sortedResultLocal);
     },
-    [items, minQueryLength, searchCompareValue, usesService]
+    [items, minQueryLength, searchCompareValue]
   );
 
   // Navigate through results using Up/Down Keys.
@@ -150,14 +148,34 @@ export const Autocomplete = (props) => {
     return indexVal;
   };
 
+  const handleCallback = (query) => {
+    // Set the Loading Icon for referencing data via a Service.
+    if (query.length >= minQueryLength && usesService) {
+      clearTimeout(delayTimer);
+
+      // In order to allow for a type ahead function, we must asychronously:
+      // a) get the result,
+      // b) set the Items State variable for the record,
+      // c) conduct the search but using the results we just acquired instead of waiting for the State variable to update,
+      // d) and then disabling the Loading Spinner.
+      delayTimer = setTimeout(async () => {
+        setLoading(true);
+
+        const res = await callback(query);
+
+        setItems(res);
+
+        await handleSearch(selectedValue, res);
+
+        setLoading(false);
+      }, 500);
+    }
+  };
+
   // Set/Update the Autocomplete data.
   useEffect(() => {
     setItems(selectionData);
-
-    if (usesService) {
-      setLoading(false);
-    }
-  }, [selectionData, usesService]);
+  }, [selectionData]);
 
   // If the input requires a data render, and the Input is disabled, re-enable it once the Loading Spinner has disabled and the data is ready.
   useEffect(() => {
@@ -173,10 +191,11 @@ export const Autocomplete = (props) => {
           const query = event.target.value.toUpperCase();
 
           setSelectedValue(query);
-          handleSearch(query);
 
           if (callback) {
-            callback(query);
+            handleCallback(query);
+          } else {
+            handleSearch(query);
           }
         }}
         disabled={loading}

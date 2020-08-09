@@ -414,6 +414,8 @@ function App() {
   );
 
   const navigateToFlight = (location) => {
+    console.log(location);
+
     const { longitude, latitude } = location;
 
     setViewport({
@@ -427,24 +429,10 @@ function App() {
     });
   };
 
-  const navigateToAirport = async (location) => {
+  const navigateToAirport = (location) => {
     const { longitude, latitude } = location;
 
     const offset = 0.095;
-
-    // Get the Departures for the Selected Airport from the Departures data.
-    const departures = flightData?.filter(
-      (departure) => location.icao === departure.planned_dep_airport__icao
-    );
-
-    // Get the Arrivals for the Selected Airport from the Active Flight data.
-    const arrivals = flightData?.filter(
-      (arrival) => location.icao === arrival.planned_dest_airport__icao
-    );
-
-    console.log(flightData);
-
-    console.log(arrivals);
 
     setViewport({
       ...viewport,
@@ -498,11 +486,13 @@ function App() {
   );
 
   const selectFlight = async (
-    flight: ICluster,
+    flightID: ICluster,
     transitionToFlightLoc: boolean = false
   ) => {
+    console.log(flightID);
+
     const selectedFlightData: IFlightVatStatsDetails = await getFlight(
-      flight.properties.id
+      flightID
     );
 
     const { current_latitude, current_longitude } = selectedFlightData;
@@ -533,7 +523,7 @@ function App() {
 
   // Select the Flight.
   const selectFlightFunc = async (
-    flight,
+    flightID,
     transitionToFlightLoc: boolean = false
   ) => {
     setLoading(true);
@@ -543,7 +533,7 @@ function App() {
       setSelectedFlight(null);
     }
 
-    await selectFlight(flight, transitionToFlightLoc);
+    await selectFlight(flightID, transitionToFlightLoc);
 
     setLoading(false);
 
@@ -565,8 +555,21 @@ function App() {
     const taf: ITAF = await getTAF(airportData.icao);
     const metar: IMetar = await getMETAR(airportData.icao);
 
+    // Get the Departures for the Selected Airport from the Departures data.
+    // const departures = flightData?.filter(
+    //   (departure) => location.icao === departure.planned_dep_airport__icao
+    // );
+
+    // Get the Arrivals for the Selected Airport from the Active Flight data.
+    const arrivals = flightData?.filter(
+      (arrival) => airportData.icao === arrival.planned_dest_airport__icao
+    );
+
+    // console.log(flightData);
+
     airportData = {
       ...airportData,
+      arrivals,
       weather: {
         ...taf,
         ...metar["M"]["decoded"],
@@ -695,7 +698,7 @@ function App() {
                 onClick={(e) => {
                   e.preventDefault();
 
-                  selectFlightFunc(clusterObj);
+                  selectFlightFunc(clusterObj.properties.id);
                   setDisplaySelectedFlight(false);
                 }}
                 onMouseOver={(e) => {
@@ -760,6 +763,7 @@ function App() {
           deselectAirportFunc={deselectAirportFunc}
           selectedAirport={selectedAirport}
           displaySelectedAirport={displaySelectedAirport}
+          selectFlightFunc={selectFlightFunc}
         />
       )}
     </ReactMapGL>

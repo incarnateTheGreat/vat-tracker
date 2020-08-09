@@ -1,18 +1,19 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { format } from "date-fns";
 
 export const AirportData = ({
   deselectAirportFunc,
   selectedAirport,
   displaySelectedAirport,
+  selectFlightFunc,
 }) => {
-  if (selectedAirport && displaySelectedAirport) {
-    const { icao, name, weather } = selectedAirport;
-
+  useEffect(() => {
     console.log(selectedAirport);
-
+  }, []);
+  if (selectedAirport && displaySelectedAirport) {
+    const iconPath = "./images/weather-icons";
+    const { icao, name, weather } = selectedAirport;
     const { main, metar_raw, start_time } = weather;
-
     const { Clouds, Pressure, Temperature, Visibility, Wind } = main[0];
 
     const handleClouds = () => {
@@ -52,10 +53,12 @@ export const AirportData = ({
       return vis;
     };
 
-    const getWeatherIcon = (icon) => {
-      switch (icon) {
+    const getWeatherIcon = (code = "") => {
+      switch (code) {
         case "RA":
-          return "wi-rain";
+        case "DZ":
+        case "DZRA":
+          return `${iconPath}/wi-rain.svg`;
         // case "clear-night":
         //   return "wi-night-clear";
         // case "few":
@@ -69,9 +72,6 @@ export const AirportData = ({
         // case "fog":
         // case "mist":
         //   return "wi-fog";
-        // case "rain":
-        // case "drizzle":
-        //   return "wi-rain";
         // case "wind":
         //   return "wi-windy";
         // case "snow":
@@ -80,8 +80,8 @@ export const AirportData = ({
         //   return "wi-sunny";
         // case "partly-cloudy-night":
         //   return "wi-night-partly-cloudy";
-        // default:
-        //   return "wi-na";
+        default:
+          return `${iconPath}/wi-na.svg`;
       }
     };
 
@@ -109,7 +109,10 @@ export const AirportData = ({
               <embed
                 className="grid-container-airport-weather-icon"
                 type="image/svg+xml"
-                src="./images/weather-icons/wi-cloud.svg"
+                src={getWeatherIcon(
+                  selectedAirport.weather.main?.[0].Weather?.[0]
+                    .originalChunk || ""
+                )}
               />
             </div>
             <div className="grid-container-airport-item --airport-item">
@@ -118,7 +121,7 @@ export const AirportData = ({
                   Observed
                 </div>
                 <div className="grid-container-airport-item-data --airport-item-data">
-                  {format(new Date(start_time.dt), "yyyy-MM-dd H:mm:ss")}
+                  {format(new Date(start_time.dt), "MMM. dd, yyyy H.mm")}
                 </div>
               </div>
               <div>
@@ -156,6 +159,27 @@ export const AirportData = ({
                 </div>
               </div>
             </div>
+            <div>Departures</div>
+            <div>Arrivals</div>
+            {selectedAirport.arrivals.length > 0 ? (
+              selectedAirport.arrivals.map((arrival, key) => (
+                <div className="grid-container-airport-item-arrivals" key={key}>
+                  <div className="grid-container-airport-item-arrivals-arrival">
+                    <span onClick={() => selectFlightFunc(arrival.id, true)}>
+                      {arrival.callsign}
+                    </span>
+                  </div>
+                  <div className="grid-container-airport-item-arrivals-arrival">
+                    {arrival.planned_dep_airport__icao}
+                  </div>
+                  <div className="grid-container-airport-item-arrivals-arrival">
+                    {arrival.planned_dest_airport__icao}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div>None</div>
+            )}
           </div>
         </div>
       </div>

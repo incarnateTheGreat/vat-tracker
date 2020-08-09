@@ -74,7 +74,6 @@ h6 {
 .no-data {
   align-items: center;
   background-color: rgb(52, 57, 123);
-  border-radius: 5px;
   color: $clr-white;
   display: flex;
   justify-content: center;
@@ -85,10 +84,11 @@ h6 {
   top: 50%;
   transform: translate(-50%, -50%);
   transition: all 0.2s ease-in-out;
+  width: 100%;
   visibility: hidden;
 
   &-enabled {
-    opacity: 0.9;
+    opacity: 0.5;
     visibility: visible;
   }
 }
