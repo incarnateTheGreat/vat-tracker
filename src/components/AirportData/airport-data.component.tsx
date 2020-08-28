@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { format } from "date-fns";
 
 export const AirportData = ({
@@ -7,14 +7,14 @@ export const AirportData = ({
   displaySelectedAirport,
   selectFlightFunc,
 }) => {
-  useEffect(() => {
-    console.log(selectedAirport);
-  }, []);
+  // useEffect(() => {
+  //   console.log(selectedAirport.weather.main[0]);
+  // }, []);
   if (selectedAirport && displaySelectedAirport) {
     const iconPath = "./images/weather-icons";
     const { icao, name, weather } = selectedAirport;
     const { main, metar_raw, start_time } = weather;
-    const { Clouds, Pressure, Temperature, Visibility, Wind } = main[0];
+    const { Clouds, Pressure = "N/A", Temperature, Visibility, Wind } = main[0];
 
     const handleClouds = () => {
       return Clouds && Clouds.length > 0 ? (
@@ -54,21 +54,27 @@ export const AirportData = ({
     };
 
     const getWeatherIcon = (code = "") => {
+      // If there's no specific Weather data indicated, decypher it via the Clouds data.
+      if (code === "") {
+        const cloudStat =
+          selectedAirport.weather.main?.[0].Clouds?.[0].originalChunk || "N/A";
+
+        if (cloudStat.includes("FEW") || cloudStat.includes("SCT")) {
+          code = "FEW";
+        }
+      }
+
       switch (code) {
         case "RA":
+        case "RERA":
+        case "-RA":
         case "DZ":
         case "DZRA":
           return `${iconPath}/wi-rain.svg`;
-        // case "clear-night":
-        //   return "wi-night-clear";
-        // case "few":
-        //   return "wi-cloudy";
-        // case "scattered":
-        // case "broken":
-        //   return "wi-sunny-overcast";
-        // case "cloudy":
-        // case "overcast":
-        //   return "wi-cloudy";
+        case "HZ":
+          return `${iconPath}/wi-day-haze.svg`;
+        case "FEW":
+          return `${iconPath}/wi-cloudy.svg`;
         // case "fog":
         // case "mist":
         //   return "wi-fog";
@@ -106,14 +112,22 @@ export const AirportData = ({
           </div>
           <div className="grid-container grid-container-airport --airport">
             <div className="grid-container-airport-weather">
-              <embed
+              <object
                 className="grid-container-airport-weather-icon"
                 type="image/svg+xml"
-                src={getWeatherIcon(
+                onLoad={(e) => {
+                  const svg = e.currentTarget
+                    .getSVGDocument()
+                    ?.querySelector("svg");
+                  svg?.setAttribute("fill", "#FFF");
+                }}
+                data={getWeatherIcon(
                   selectedAirport.weather.main?.[0].Weather?.[0]
                     .originalChunk || ""
                 )}
-              />
+              >
+                &nbsp;
+              </object>
             </div>
             <div className="grid-container-airport-item --airport-item">
               <div>
@@ -121,7 +135,9 @@ export const AirportData = ({
                   Observed
                 </div>
                 <div className="grid-container-airport-item-data --airport-item-data">
-                  {format(new Date(start_time.dt), "MMM. dd, yyyy H.mm")}
+                  {start_time
+                    ? format(new Date(start_time.dt), "MMM. dd, yyyy H.mm")
+                    : "N/A"}
                 </div>
               </div>
               <div>
@@ -160,6 +176,27 @@ export const AirportData = ({
               </div>
             </div>
             <div>Departures</div>
+            <div>
+              {selectedAirport.departures.length > 0 ? (
+                selectedAirport.departures.map((departure, key) => (
+                  <div
+                    className="grid-container-airport-item-departures"
+                    key={key}
+                  >
+                    <div className="grid-container-airport-item-departures-departure">
+                      <span
+                        onClick={() => selectFlightFunc(departure.id, true)}
+                      >
+                        {departure.callsign}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div>None</div>
+              )}
+            </div>
+
             <div>Arrivals</div>
             {selectedAirport.arrivals.length > 0 ? (
               selectedAirport.arrivals.map((arrival, key) => (
@@ -171,9 +208,6 @@ export const AirportData = ({
                   </div>
                   <div className="grid-container-airport-item-arrivals-arrival">
                     {arrival.planned_dep_airport__icao}
-                  </div>
-                  <div className="grid-container-airport-item-arrivals-arrival">
-                    {arrival.planned_dest_airport__icao}
                   </div>
                 </div>
               ))

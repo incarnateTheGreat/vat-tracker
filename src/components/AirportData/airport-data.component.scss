@@ -2,7 +2,7 @@
   &.airport-data {
     height: 90%;
     right: calc(25% - 320px);
-    width: 50%;
+    width: 500px;
   }
 
   &-details {
@@ -40,6 +40,7 @@
             text-align: right;
 
             &-clouds {
+              list-style: none;
               margin: 0;
               padding: 0;
 
@@ -51,31 +52,35 @@
             }
           }
 
+          &-departures,
           &-arrivals {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-gap: 0.5em;
             padding: 4px 0;
 
+            &-departure,
             &-arrival {
+              &:first-child {
+                span {
+                  cursor: pointer;
+
+                  &:hover {
+                    color: $clr-black3;
+                  }
+                }
+              }
             }
           }
         }
 
         &-weather {
-          border: 1px dashed white;
           display: flex;
           min-height: 120px;
           justify-content: center;
 
           &-icon {
             width: 100px;
-
-            fill: $clr-white;
-
-            svg {
-              fill: $clr-white;
-            }
           }
         }
       }

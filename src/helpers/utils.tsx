@@ -1,7 +1,7 @@
 import { IFlightVatStats } from "../declaration/app";
 
 // Select and Assign the correct (or approximate) Aircraft Type for the Marker.
-export const getTypeOfAircraft = (aircraft) => {
+export const getTypeOfAircraftIcon = (aircraft) => {
   if (aircraft.includes("B74")) {
     return "/images/airplane-747-icon.png";
   } else if (
@@ -30,6 +30,42 @@ export const getTypeOfAircraft = (aircraft) => {
   } else {
     // return 'Default'
     return "/images/airplane-icon.png";
+  }
+};
+
+export const getTypeOfAircraft = (aircraft) => {
+  if (aircraft.includes("B74")) {
+    return "B747";
+  } else if (aircraft.includes("B73")) {
+    return "B737";
+  } else if (aircraft.includes("B75")) {
+    return "B757";
+  } else if (aircraft.includes("B76")) {
+    return "B767";
+  } else if (aircraft.includes("B77")) {
+    return "B777";
+  } else if (aircraft.includes("B78")) {
+    return "B787";
+  } else if (aircraft.includes("A31")) {
+    return "A310";
+  } else if (aircraft.includes("A32")) {
+    return "A320";
+  } else if (aircraft.includes("A33")) {
+    return "A330";
+  } else if (aircraft.includes("A34")) {
+    return "A340";
+  } else if (aircraft.includes("B74")) {
+    return "B747";
+  } else if (aircraft.includes("DH")) {
+    return "DASH-8";
+  } else if (aircraft.includes("C13")) {
+    return "C-130";
+  } else if (aircraft.includes("C172")) {
+    return "CESSNA-172";
+  } else if (aircraft.includes("MD11")) {
+    return "MD-11";
+  } else {
+    return aircraft;
   }
 };
 

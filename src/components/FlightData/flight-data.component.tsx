@@ -1,4 +1,5 @@
 import React from "react";
+import { getTypeOfAircraft } from "../../helpers/utils";
 
 export const FlightData = ({
   selectedFlight,
@@ -109,7 +110,7 @@ export const FlightData = ({
             </div>
             <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
               <div>Equipment</div>
-              <div>{planned_aircraft}</div>
+              <div>{getTypeOfAircraft(planned_aircraft)}</div>
             </div>
             <div className="grid-container-item grid-container-item-lower-level grid-container-item-altitude">
               <div>Altitude</div>

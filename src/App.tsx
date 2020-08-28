@@ -36,7 +36,7 @@ import {
 import {
   assembleClusterData,
   drawWeatherLayer,
-  getTypeOfAircraft,
+  getTypeOfAircraftIcon,
   getTypeOfAircraftSelected,
 } from "./helpers/utils";
 
@@ -147,7 +147,7 @@ function App() {
     //   return getTypeOfAircraft("controller");
     // }
 
-    const aircraftType = getTypeOfAircraft(
+    const aircraftIcon = getTypeOfAircraftIcon(
       flightData.properties.planned_aircraft
     );
 
@@ -159,7 +159,7 @@ function App() {
       return getTypeOfAircraftSelected(flightData.properties.planned_aircraft);
     }
 
-    return aircraftType;
+    return aircraftIcon;
   };
 
   // Assign the Cluster Data, Bounds, Zoom, and other Options to Superclister.
@@ -189,12 +189,15 @@ function App() {
       planned_destairport
     );
 
-    const routeData = await fetchRoute(decodedFlightRoute.id);
-
+    // Draw out the Polyline route, but only if the service successfully returns data.
     if (decodedFlightRoute.encodedPolyline) {
+      const routeData = await fetchRoute(decodedFlightRoute.id);
+
       drawRoute(routeData.route.nodes, location, transitionToFlightLoc);
     } else {
       drawRoute(null);
+
+      navigateToFlight(location);
     }
   };
 
@@ -533,11 +536,13 @@ function App() {
       setSelectedFlight(null);
     }
 
+    if (selectedAirport) {
+      setDisplaySelectedAirport(false);
+    }
+
     await selectFlight(flightID, transitionToFlightLoc);
 
     setLoading(false);
-
-    setDisplaySelectedAirport(false);
 
     if (!transitionToFlightLoc) {
       setDisplaySelectedFlight(true);
@@ -556,20 +561,19 @@ function App() {
     const metar: IMetar = await getMETAR(airportData.icao);
 
     // Get the Departures for the Selected Airport from the Departures data.
-    // const departures = flightData?.filter(
-    //   (departure) => location.icao === departure.planned_dep_airport__icao
-    // );
+    const departures = flightData?.filter(
+      (departure) => airportData.icao === departure.planned_dep_airport__icao
+    );
 
     // Get the Arrivals for the Selected Airport from the Active Flight data.
     const arrivals = flightData?.filter(
       (arrival) => airportData.icao === arrival.planned_dest_airport__icao
     );
 
-    // console.log(flightData);
-
     airportData = {
       ...airportData,
       arrivals,
+      departures,
       weather: {
         ...taf,
         ...metar["M"]["decoded"],
