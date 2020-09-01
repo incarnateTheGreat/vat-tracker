@@ -8,18 +8,16 @@ In order for the application to function, three functions need to be active:
 
 1. React Dev server
 
-2. Express server (operates Express connection to React Dev server and GraphQL)
-
-3. MongoDB server
+2. Express server (operates Express connection to React Dev server)
 
 ## Installation
 
 Run the following from the Command Line:
 
 ```
-git clone https://github.com/incarnateTheGreat/vatsim-tracker
+git clone https://github.com/incarnateTheGreat/vat-tracker
 
-cd vatsim-tracker
+cd vat-tracker
 ```
 
 Once the above steps are complete, download the latest dependencies by running:
@@ -36,7 +34,7 @@ npm install
 
 ## Information Server
 
-In order to gather VATSIM and Airport (TBD) data, you need to have an Express Server running in the background.
+In order to gather VATSIM and Airport data, you need to have an Express Server running in the background.
 
 1. From the Command Line, open a new tab.
 
@@ -45,10 +43,6 @@ In order to gather VATSIM and Airport (TBD) data, you need to have an Express Se
 3. Run `node server.js`, or use **nodemon** by running `nodemon server.js`.
 
 4. Should prompt `Express servers started!` shortly afterwards.
-
-## MongoDB Server
-
-TBD.
 
 ## Tech Stack
 
