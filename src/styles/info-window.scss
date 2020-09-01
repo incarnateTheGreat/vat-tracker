@@ -1,0 +1,59 @@
+.info-window {
+  background-color: #3c3c3c;
+  bottom: 40px;
+  color: #fff;
+  cursor: default;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: -40%;
+  opacity: 1;
+  padding: 10px;
+  position: absolute;
+  transition: 0.2s ease-in-out;
+  right: calc(50% - 400px);
+  visibility: hidden;
+  width: 800px;
+  z-index: 5000;
+
+  &-enabled {
+    margin-bottom: 0;
+    visibility: visible;
+  }
+
+  &-details {
+    flex: 1;
+
+    h1 {
+      letter-spacing: 2px;
+    }
+
+    h4 {
+      color: #d8d8d8;
+    }
+
+    &-name {
+      display: flex;
+      background-color: rgb(107, 107, 107);
+      justify-content: space-between;
+      padding: 10px;
+
+      & > div {
+        align-items: center;
+        display: flex;
+
+        & > * {
+          padding: 0 8px 0 0;
+        }
+      }
+    }
+
+    &-divider {
+      font-size: $size-28;
+    }
+  }
+
+  &-close {
+    cursor: pointer;
+    font-weight: bold;
+  }
+}
