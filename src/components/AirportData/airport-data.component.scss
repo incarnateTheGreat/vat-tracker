@@ -1,8 +1,9 @@
 .info-window {
   &.airport-data {
     height: 90%;
+    overflow-y: scroll;
     right: calc(25% - 320px);
-    width: 500px;
+    width: 650px;
   }
 
   &-details {
@@ -11,6 +12,50 @@
       &.--airport {
         grid-template-columns: auto;
         padding: 5px;
+
+        .Tabs {
+          margin: 5px 0 0;
+        }
+
+        &-flights {
+          color: $clr-black;
+
+          &-departures,
+          &-arrivals {
+            display: grid;
+            font-size: $size-14;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 0.5em;
+            padding: 5px;
+
+            &:not(:first-child) {
+              &:hover {
+                color: $clr-black4;
+                cursor: pointer;
+              }
+            }
+
+            &:first-child {
+              font-weight: bold;
+            }
+
+            &:nth-child(even) {
+              background-color: #ececec;
+            }
+
+            // &:hover {
+            //   color: $clr-black4;
+            //   cursor: pointer;
+            // }
+
+            &-no-data {
+              pointer-events: none;
+              &:hover {
+                cursor: default;
+              }
+            }
+          }
+        }
 
         &-item {
           display: grid;
@@ -51,27 +96,6 @@
               }
             }
           }
-
-          &-departures,
-          &-arrivals {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-gap: 0.5em;
-            padding: 4px 0;
-
-            &-departure,
-            &-arrival {
-              &:first-child {
-                span {
-                  cursor: pointer;
-
-                  &:hover {
-                    color: $clr-black3;
-                  }
-                }
-              }
-            }
-          }
         }
 
         &-weather {
@@ -80,6 +104,7 @@
           justify-content: center;
 
           &-icon {
+            height: 100px;
             width: 100px;
           }
         }

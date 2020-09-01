@@ -36,8 +36,14 @@ export const getTypeOfAircraftIcon = (aircraft) => {
 export const getTypeOfAircraft = (aircraft) => {
   if (aircraft.includes("B74")) {
     return "B747";
-  } else if (aircraft.includes("B73")) {
+  } else if (aircraft.includes("B737")) {
     return "B737";
+  } else if (aircraft.includes("B38")) {
+    return "B737 MAX";
+  } else if (aircraft.includes("B738")) {
+    return "B737-800";
+  } else if (aircraft.includes("B739")) {
+    return "B737-900";
   } else if (aircraft.includes("B75")) {
     return "B757";
   } else if (aircraft.includes("B76")) {
@@ -46,6 +52,8 @@ export const getTypeOfAircraft = (aircraft) => {
     return "B777";
   } else if (aircraft.includes("B78")) {
     return "B787";
+  } else if (aircraft.includes("A21")) {
+    return "A321 NEO";
   } else if (aircraft.includes("A31")) {
     return "A310";
   } else if (aircraft.includes("A32")) {
@@ -54,6 +62,8 @@ export const getTypeOfAircraft = (aircraft) => {
     return "A330";
   } else if (aircraft.includes("A34")) {
     return "A340";
+  } else if (aircraft.includes("A3")) {
+    return "A3XX";
   } else if (aircraft.includes("B74")) {
     return "B747";
   } else if (aircraft.includes("DH")) {
@@ -64,6 +74,8 @@ export const getTypeOfAircraft = (aircraft) => {
     return "CESSNA-172";
   } else if (aircraft.includes("MD11")) {
     return "MD-11";
+  } else if (aircraft.includes("CRJ")) {
+    return "CRJ 700";
   } else {
     return aircraft;
   }

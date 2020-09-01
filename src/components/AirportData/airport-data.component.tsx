@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
+import { getTypeOfAircraft } from "../../helpers/utils";
+import { Tabs } from "../Tabs/tabs.component";
 
 export const AirportData = ({
   deselectAirportFunc,
@@ -7,9 +9,122 @@ export const AirportData = ({
   displaySelectedAirport,
   selectFlightFunc,
 }) => {
-  // useEffect(() => {
-  //   console.log(selectedAirport.weather.main[0]);
-  // }, []);
+  const [tabData, setTabData] = useState<object[]>([]);
+
+  // Sort the Departures and Arrivals data.
+  const sortAirportData = (airportObj) => {
+    return airportObj.sort((a, b) => {
+      if (a.callsign < b.callsign) {
+        return -1;
+      }
+
+      if (a.callsign > b.callsign) {
+        return 1;
+      }
+
+      return 0;
+    });
+  };
+
+  useEffect(() => {
+    setTabData([
+      {
+        label: "Departures",
+        component: (
+          <>
+            <section>
+              <div className="grid-container-airport-flights">
+                <div className="grid-container-airport-flights-departures">
+                  <div className="grid-container-airport-flights-departures-departure">
+                    Flight
+                  </div>
+                  <div className="grid-container-airport-flights-departures-departure">
+                    To
+                  </div>
+                  <div className="grid-container-airport-flights-departures-departure">
+                    Aircraft
+                  </div>
+                </div>
+                {selectedAirport.departures.length > 0 ? (
+                  sortAirportData(selectedAirport.departures).map(
+                    (departure, key) => (
+                      <div
+                        className="grid-container-airport-flights-departures"
+                        key={key}
+                        onClick={() => selectFlightFunc(departure.id, true)}
+                      >
+                        <div className="grid-container-airport-flights-departures-departure">
+                          <span>{departure.callsign}</span>
+                        </div>
+                        <div className="grid-container-airport-flights-departures-departure">
+                          {departure.planned_dest_airport__icao}
+                        </div>
+                        <div className="grid-container-airport-flights-departures-departure">
+                          {getTypeOfAircraft(departure.planned_aircraft)}
+                        </div>
+                      </div>
+                    )
+                  )
+                ) : (
+                  <div className="grid-container-airport-flights-arrivals grid-container-airport-flights-arrivals-no-data">
+                    None
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        ),
+      },
+      {
+        label: "Arrivals",
+        component: (
+          <>
+            <section>
+              <div className="grid-container-airport-flights">
+                <div className="grid-container-airport-flights-departures">
+                  <div className="grid-container-airport-flights-departures-departure">
+                    Flight
+                  </div>
+                  <div className="grid-container-airport-flights-departures-departure">
+                    From
+                  </div>
+                  <div className="grid-container-airport-flights-departures-departure">
+                    Aircraft
+                  </div>
+                </div>
+                {selectedAirport.arrivals.length > 0 ? (
+                  sortAirportData(selectedAirport.arrivals).map(
+                    (arrival, key) => (
+                      <div
+                        className="grid-container-airport-flights-arrivals"
+                        key={key}
+                        onClick={() => selectFlightFunc(arrival.id, true)}
+                      >
+                        <div className="grid-container-airport-flights-arrivals-arrival">
+                          <span>{arrival.callsign}</span>
+                        </div>
+                        <div className="grid-container-airport-flights-arrivals-arrival">
+                          {arrival.planned_dep_airport__icao}
+                        </div>
+                        <div className="grid-container-airport-flights-arrivals-arrival">
+                          {getTypeOfAircraft(arrival.planned_aircraft)}
+                        </div>
+                      </div>
+                    )
+                  )
+                ) : (
+                  <div className="grid-container-airport-flights-departures grid-container-airport-flights-departures-no-data">
+                    None
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        ),
+      },
+    ]);
+  }, [selectedAirport]);
+
   if (selectedAirport && displaySelectedAirport) {
     const iconPath = "./images/weather-icons";
     const { icao, name, weather } = selectedAirport;
@@ -71,6 +186,8 @@ export const AirportData = ({
         case "DZ":
         case "DZRA":
           return `${iconPath}/wi-rain.svg`;
+        case "TS":
+          return `${iconPath}/wi-thunderstorm.svg`;
         case "HZ":
           return `${iconPath}/wi-day-haze.svg`;
         case "FEW":
@@ -175,45 +292,11 @@ export const AirportData = ({
                 </div>
               </div>
             </div>
-            <div>Departures</div>
-            <div>
-              {selectedAirport.departures.length > 0 ? (
-                selectedAirport.departures.map((departure, key) => (
-                  <div
-                    className="grid-container-airport-item-departures"
-                    key={key}
-                  >
-                    <div className="grid-container-airport-item-departures-departure">
-                      <span
-                        onClick={() => selectFlightFunc(departure.id, true)}
-                      >
-                        {departure.callsign}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div>None</div>
-              )}
-            </div>
 
-            <div>Arrivals</div>
-            {selectedAirport.arrivals.length > 0 ? (
-              selectedAirport.arrivals.map((arrival, key) => (
-                <div className="grid-container-airport-item-arrivals" key={key}>
-                  <div className="grid-container-airport-item-arrivals-arrival">
-                    <span onClick={() => selectFlightFunc(arrival.id, true)}>
-                      {arrival.callsign}
-                    </span>
-                  </div>
-                  <div className="grid-container-airport-item-arrivals-arrival">
-                    {arrival.planned_dep_airport__icao}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div>None</div>
-            )}
+            <Tabs
+              className="grid-container-airport-flights-container"
+              tabData={tabData}
+            />
           </div>
         </div>
       </div>

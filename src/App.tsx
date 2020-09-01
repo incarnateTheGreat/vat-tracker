@@ -4,9 +4,11 @@ import ReactMapGL, {
   FlyToInterpolator,
   Marker,
   NavigationControl,
+  Popup,
 } from "react-map-gl";
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
+import { getTypeOfAircraft } from "./helpers/utils";
 
 // APIs
 import {
@@ -78,6 +80,7 @@ function App() {
   const [latestWeatherTimestamp, setLatestWeatherTimestamp] = useState<
     number | null
   >(null);
+  const [displayPopup, setDisplayPopup] = useState<ICluster | null>(null);
   const [icaoInput, setIcaoInput] = useState<string>("");
 
   const mapRef = useRef<any>(null);
@@ -530,6 +533,7 @@ function App() {
     transitionToFlightLoc: boolean = false
   ) => {
     setLoading(true);
+    setToggleNavigationMenu(false);
 
     // Disable the Selected Flight to clear the screen and allow for the new selection to load togerther.
     if (selectedFlight) {
@@ -625,6 +629,47 @@ function App() {
     deselectAirportFunc,
   ]);
 
+  const displayPopupDataView = () => {
+    if (displayPopup) {
+      const {
+        callsign,
+        current_altitude,
+        current_latitude,
+        current_longitude,
+        real_name,
+        planned_aircraft,
+        planned_dep_airport__icao,
+        planned_dest_airport__icao,
+      } = displayPopup.properties;
+
+      // if (isController) {
+      //   return (
+      //     <Popup longitude={longitude} latitude={latitude}>
+      //       <div>
+      //         <h3>{callsign}</h3>
+      //         <h5>{name}</h5>
+      //       </div>
+      //     </Popup>
+      //   );
+      // }
+
+      return (
+        <Popup longitude={current_longitude} latitude={current_latitude}>
+          <div>
+            <h3>{callsign}</h3>
+            <h5>{real_name}</h5>
+            <div>{planned_dep_airport__icao}</div>
+            <div>{planned_dest_airport__icao}</div>
+            <div>{getTypeOfAircraft(planned_aircraft)}</div>
+            <div>{current_altitude} FT.</div>
+          </div>
+        </Popup>
+      );
+    }
+
+    return null;
+  };
+
   useInterval(() => {
     handleGetFlightData();
   }, 15000);
@@ -646,6 +691,8 @@ function App() {
   return (
     <ReactMapGL
       {...viewport}
+      doubleClickZoom={!displaySelectedAirport}
+      scrollZoom={!displaySelectedAirport}
       mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
       mapStyle="mapbox://styles/incarnate/ckc5i9a5s02w21ipgctm9js0w"
       onViewportChange={(viewportObj: IViewport) => {
@@ -707,9 +754,12 @@ function App() {
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.src = handleIcon(clusterObj, true);
+
+                  setDisplayPopup(clusterObj);
                 }}
                 onMouseOut={(e) => {
                   e.currentTarget.src = handleIcon(clusterObj);
+                  setDisplayPopup(null);
                 }}
                 className="marker-image"
                 src={handleIcon(clusterObj)}
@@ -770,6 +820,8 @@ function App() {
           selectFlightFunc={selectFlightFunc}
         />
       )}
+
+      {displayPopupDataView()}
     </ReactMapGL>
   );
 }
