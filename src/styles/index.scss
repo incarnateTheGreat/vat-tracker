@@ -2,7 +2,11 @@
 @import "./fonts";
 @import "./variables";
 @import "./components";
+@import "./markers";
+@import "./menu";
+@import "./popover";
 
+// Default HTML
 body {
   font-family: "ProximaNova", sans-serif;
   margin: 0;
@@ -22,52 +26,7 @@ ul {
   list-style: none;
 }
 
-.marker {
-  &-image {
-    cursor: pointer;
-    width: 25px;
-  }
-}
-
-.cluster-marker {
-  align-items: center;
-  background-color: #1978c8;
-  border-radius: 50%;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  font-family: sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  justify-content: center;
-  padding: 10px;
-  transition: 0.1s all ease-in-out;
-
-  &:hover {
-    background-color: #135994;
-  }
-
-  &-active {
-    background-color: #de3a1f;
-  }
-}
-
-.navigation-control {
-  cursor: pointer;
-  right: 10px;
-  top: 10px;
-  position: absolute;
-  z-index: 10;
-}
-
-.menu {
-  cursor: pointer;
-  left: 10px;
-  position: absolute;
-  top: 10px;
-  width: 3%;
-}
-
+// No Data strip.
 .no-data {
   align-items: center;
   background-color: rgb(52, 57, 123);
@@ -87,50 +46,5 @@ ul {
   &-enabled {
     opacity: 0.5;
     visibility: visible;
-  }
-}
-
-@media only screen and (max-width: 868px) {
-  .info-window {
-    right: calc(50% - 335px);
-    width: 650px;
-
-    &-details {
-      .grid-container-item-icao {
-        &-plane-to {
-          width: 30px;
-        }
-      }
-    }
-  }
-}
-
-@media only screen and (max-width: 700px) {
-  .info-window {
-    right: calc(9%);
-    width: 80%;
-
-    &-details {
-      .grid-container-item {
-        &-lower-level {
-          & > div {
-            font-size: $size-12;
-          }
-        }
-
-        &-icao {
-          grid-column: span 4;
-
-          &-plane-to {
-            display: none;
-          }
-        }
-
-        &-heading-container-arrow {
-          height: 18px;
-          width: 18px;
-        }
-      }
-    }
   }
 }

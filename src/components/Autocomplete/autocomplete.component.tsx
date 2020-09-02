@@ -18,8 +18,7 @@ export const Autocomplete = (props) => {
   const [loading, setLoading] = useState<boolean>(false);
   const inputRef = createRef<any>();
   const resultRef = createRef<any>();
-
-  let delayTimer;
+  const [delayTimer, setDelayTimer] = useState<any>();
 
   const getValue = (name, obj) => {
     if (obj) {
@@ -151,14 +150,14 @@ export const Autocomplete = (props) => {
   const handleCallback = (query) => {
     // Set the Loading Icon for referencing data via a Service.
     if (query.length >= minQueryLength && usesService) {
-      clearTimeout(delayTimer);
+      setDelayTimer(clearTimeout(delayTimer));
 
       // In order to allow for a type ahead function, we must asychronously:
       // a) get the result,
       // b) set the Items State variable for the record,
       // c) conduct the search but using the results we just acquired instead of waiting for the State variable to update,
       // d) and then disabling the Loading Spinner.
-      delayTimer = setTimeout(async () => {
+      const timeout = setTimeout(async () => {
         setLoading(true);
 
         const res = await callback(query);
@@ -169,6 +168,8 @@ export const Autocomplete = (props) => {
 
         setLoading(false);
       }, 500);
+
+      setDelayTimer(timeout);
     }
   };
 

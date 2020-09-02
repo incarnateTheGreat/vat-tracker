@@ -4,10 +4,9 @@
   flex-direction: column;
   height: 100%;
   margin-left: -44%;
-  padding: 10px;
+  padding: 10px 25px;
   position: absolute;
   transition: 0.2s ease-in-out;
-  width: 20%;
   z-index: 2;
 
   &-enabled {
@@ -19,8 +18,10 @@
   }
 
   &-top {
+    color: $clr-white;
     display: flex;
     justify-content: space-between;
+    margin: 0 0 10px;
   }
 
   &-links {

@@ -1,0 +1,12 @@
+.mapboxgl-popup {
+  font-size: $size-14;
+
+  &-route {
+    display: flex;
+    flex-direction: row;
+
+    &-arrow {
+      padding: 0 5px;
+    }
+  }
+}

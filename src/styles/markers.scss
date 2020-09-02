@@ -1,0 +1,33 @@
+.marker {
+  &-image {
+    cursor: pointer;
+    width: 15px;
+
+    &-zoom {
+      width: 25px;
+    }
+  }
+}
+
+.cluster-marker {
+  align-items: center;
+  background-color: #1978c8;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-family: sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  justify-content: center;
+  padding: 10px;
+  transition: 0.1s all ease-in-out;
+
+  &:hover {
+    background-color: #135994;
+  }
+
+  &-active {
+    background-color: #de3a1f;
+  }
+}

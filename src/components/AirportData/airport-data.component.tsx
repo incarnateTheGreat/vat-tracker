@@ -10,6 +10,7 @@ export const AirportData = ({
   selectFlightFunc,
 }) => {
   const [tabData, setTabData] = useState<object[]>([]);
+  const [activeTab, setActiveTab] = useState<number>(0);
 
   // Sort the Departures and Arrivals data.
   const sortAirportData = (airportObj) => {
@@ -26,104 +27,201 @@ export const AirportData = ({
     });
   };
 
-  useEffect(() => {
-    setTabData([
-      {
-        label: "Departures",
-        component: (
-          <>
-            <section>
-              <div className="grid-container-airport-flights">
-                <div className="grid-container-airport-flights-departures">
-                  <div className="grid-container-airport-flights-departures-departure">
-                    Flight
-                  </div>
-                  <div className="grid-container-airport-flights-departures-departure">
-                    To
-                  </div>
-                  <div className="grid-container-airport-flights-departures-departure">
-                    Aircraft
-                  </div>
+  // useEffect(() => {
+  //   setTabData([
+  //     {
+  //       label: "Departures",
+  //       component: (
+  //         <>
+  //           <section>
+  //             <div className="grid-container-airport-flights">
+  //               <div className="grid-container-airport-flights-departures">
+  //                 <div className="grid-container-airport-flights-departures-departure">
+  //                   Flight
+  //                 </div>
+  //                 <div className="grid-container-airport-flights-departures-departure">
+  //                   To
+  //                 </div>
+  //                 <div className="grid-container-airport-flights-departures-departure">
+  //                   Aircraft
+  //                 </div>
+  //               </div>
+  //               {selectedAirport.departures.length > 0 ? (
+  //                 sortAirportData(selectedAirport.departures).map(
+  //                   (departure, key) => (
+  //                     <div
+  //                       className="grid-container-airport-flights-departures"
+  //                       key={key}
+  //                       onClick={() => selectFlightFunc(departure.id, true)}
+  //                     >
+  //                       <div className="grid-container-airport-flights-departures-departure">
+  //                         <span>{departure.callsign}</span>
+  //                       </div>
+  //                       <div className="grid-container-airport-flights-departures-departure">
+  //                         {departure.planned_dest_airport__icao}
+  //                       </div>
+  //                       <div className="grid-container-airport-flights-departures-departure">
+  //                         {getTypeOfAircraft(departure.planned_aircraft)}
+  //                       </div>
+  //                     </div>
+  //                   )
+  //                 )
+  //               ) : (
+  //                 <div className="grid-container-airport-flights-arrivals grid-container-airport-flights-arrivals-no-data">
+  //                   None
+  //                 </div>
+  //               )}
+  //             </div>
+  //           </section>
+  //         </>
+  //       ),
+  //     },
+  //     {
+  //       label: "Arrivals",
+  //       component: (
+  //         <>
+  //           <section>
+  //             <div className="grid-container-airport-flights">
+  //               <div className="grid-container-airport-flights-departures">
+  //                 <div className="grid-container-airport-flights-departures-departure">
+  //                   Flight
+  //                 </div>
+  //                 <div className="grid-container-airport-flights-departures-departure">
+  //                   From
+  //                 </div>
+  //                 <div className="grid-container-airport-flights-departures-departure">
+  //                   Aircraft
+  //                 </div>
+  //               </div>
+  //               {selectedAirport.arrivals.length > 0 ? (
+  //                 sortAirportData(selectedAirport.arrivals).map(
+  //                   (arrival, key) => (
+  //                     <div
+  //                       className="grid-container-airport-flights-arrivals"
+  //                       key={key}
+  //                       onClick={() => selectFlightFunc(arrival.id, true)}
+  //                     >
+  //                       <div className="grid-container-airport-flights-arrivals-arrival">
+  //                         <span>{arrival.callsign}</span>
+  //                       </div>
+  //                       <div className="grid-container-airport-flights-arrivals-arrival">
+  //                         {arrival.planned_dep_airport__icao}
+  //                       </div>
+  //                       <div className="grid-container-airport-flights-arrivals-arrival">
+  //                         {getTypeOfAircraft(arrival.planned_aircraft)}
+  //                       </div>
+  //                     </div>
+  //                   )
+  //                 )
+  //               ) : (
+  //                 <div className="grid-container-airport-flights-departures grid-container-airport-flights-departures-no-data">
+  //                   None
+  //                 </div>
+  //               )}
+  //             </div>
+  //           </section>
+  //         </>
+  //       ),
+  //     },
+  //   ]);
+  // }, [selectedAirport.arrivals, selectedAirport.departures, selectFlightFunc]);
+
+  const yeah = [
+    {
+      label: "Departures",
+      component: (
+        <>
+          <section>
+            <div className="grid-container-airport-flights">
+              <div className="grid-container-airport-flights-departures">
+                <div className="grid-container-airport-flights-departures-departure">
+                  Flight
                 </div>
-                {selectedAirport.departures.length > 0 ? (
-                  sortAirportData(selectedAirport.departures).map(
-                    (departure, key) => (
-                      <div
-                        className="grid-container-airport-flights-departures"
-                        key={key}
-                        onClick={() => selectFlightFunc(departure.id, true)}
-                      >
-                        <div className="grid-container-airport-flights-departures-departure">
-                          <span>{departure.callsign}</span>
-                        </div>
-                        <div className="grid-container-airport-flights-departures-departure">
-                          {departure.planned_dest_airport__icao}
-                        </div>
-                        <div className="grid-container-airport-flights-departures-departure">
-                          {getTypeOfAircraft(departure.planned_aircraft)}
-                        </div>
-                      </div>
-                    )
-                  )
-                ) : (
-                  <div className="grid-container-airport-flights-arrivals grid-container-airport-flights-arrivals-no-data">
-                    None
-                  </div>
-                )}
-              </div>
-            </section>
-          </>
-        ),
-      },
-      {
-        label: "Arrivals",
-        component: (
-          <>
-            <section>
-              <div className="grid-container-airport-flights">
-                <div className="grid-container-airport-flights-departures">
-                  <div className="grid-container-airport-flights-departures-departure">
-                    Flight
-                  </div>
-                  <div className="grid-container-airport-flights-departures-departure">
-                    From
-                  </div>
-                  <div className="grid-container-airport-flights-departures-departure">
-                    Aircraft
-                  </div>
+                <div className="grid-container-airport-flights-departures-departure">
+                  To
                 </div>
-                {selectedAirport.arrivals.length > 0 ? (
-                  sortAirportData(selectedAirport.arrivals).map(
-                    (arrival, key) => (
-                      <div
-                        className="grid-container-airport-flights-arrivals"
-                        key={key}
-                        onClick={() => selectFlightFunc(arrival.id, true)}
-                      >
-                        <div className="grid-container-airport-flights-arrivals-arrival">
-                          <span>{arrival.callsign}</span>
-                        </div>
-                        <div className="grid-container-airport-flights-arrivals-arrival">
-                          {arrival.planned_dep_airport__icao}
-                        </div>
-                        <div className="grid-container-airport-flights-arrivals-arrival">
-                          {getTypeOfAircraft(arrival.planned_aircraft)}
-                        </div>
-                      </div>
-                    )
-                  )
-                ) : (
-                  <div className="grid-container-airport-flights-departures grid-container-airport-flights-departures-no-data">
-                    None
-                  </div>
-                )}
+                <div className="grid-container-airport-flights-departures-departure">
+                  Aircraft
+                </div>
               </div>
-            </section>
-          </>
-        ),
-      },
-    ]);
-  }, [selectedAirport]);
+              {selectedAirport.departures.length > 0 ? (
+                sortAirportData(selectedAirport.departures).map(
+                  (departure, key) => (
+                    <div
+                      className="grid-container-airport-flights-departures"
+                      key={key}
+                      onClick={() => selectFlightFunc(departure.id, true)}
+                    >
+                      <div className="grid-container-airport-flights-departures-departure">
+                        <span>{departure.callsign}</span>
+                      </div>
+                      <div className="grid-container-airport-flights-departures-departure">
+                        {departure.planned_dest_airport__icao}
+                      </div>
+                      <div className="grid-container-airport-flights-departures-departure">
+                        {getTypeOfAircraft(departure.planned_aircraft)}
+                      </div>
+                    </div>
+                  )
+                )
+              ) : (
+                <div className="grid-container-airport-flights-arrivals grid-container-airport-flights-arrivals-no-data">
+                  None
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      ),
+    },
+    {
+      label: "Arrivals",
+      component: (
+        <>
+          <section>
+            <div className="grid-container-airport-flights">
+              <div className="grid-container-airport-flights-departures">
+                <div className="grid-container-airport-flights-departures-departure">
+                  Flight
+                </div>
+                <div className="grid-container-airport-flights-departures-departure">
+                  From
+                </div>
+                <div className="grid-container-airport-flights-departures-departure">
+                  Aircraft
+                </div>
+              </div>
+              {selectedAirport.arrivals.length > 0 ? (
+                sortAirportData(selectedAirport.arrivals).map(
+                  (arrival, key) => (
+                    <div
+                      className="grid-container-airport-flights-arrivals"
+                      key={key}
+                      onClick={() => selectFlightFunc(arrival.id, true)}
+                    >
+                      <div className="grid-container-airport-flights-arrivals-arrival">
+                        <span>{arrival.callsign}</span>
+                      </div>
+                      <div className="grid-container-airport-flights-arrivals-arrival">
+                        {arrival.planned_dep_airport__icao}
+                      </div>
+                      <div className="grid-container-airport-flights-arrivals-arrival">
+                        {getTypeOfAircraft(arrival.planned_aircraft)}
+                      </div>
+                    </div>
+                  )
+                )
+              ) : (
+                <div className="grid-container-airport-flights-departures grid-container-airport-flights-departures-no-data">
+                  None
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      ),
+    },
+  ];
 
   if (selectedAirport && displaySelectedAirport) {
     const iconPath = "./images/weather-icons";
@@ -294,8 +392,12 @@ export const AirportData = ({
             </div>
 
             <Tabs
+              callback={(activeTabCallback) => {
+                setActiveTab(activeTabCallback);
+              }}
+              activeTab={activeTab}
               className="grid-container-airport-flights-container"
-              tabData={tabData}
+              tabData={yeah}
             />
           </div>
         </div>

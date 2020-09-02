@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-export const Tabs = props => {
-  const { tabData, activeTab = 0, className = '' } = props;
+export const Tabs = (props) => {
+  const { tabData, activeTab = 0, className = "" } = props;
   const [activeTabNumber, setActiveTabNumber] = useState(0);
   const [active, setActive] = useState(tabData[activeTabNumber] || tabData[0]);
 
-  const changeTabView = key => () => {
+  const changeTabView = (key) => () => {
     setActive(tabData[key]);
 
     setActiveTabNumber(key);
@@ -15,10 +15,10 @@ export const Tabs = props => {
     }
   };
 
-  const getTabClassName = tab => (tab === active ? 'selected' : '');
+  const getTabClassName = (tab) => (tab === active ? "selected" : "");
 
-  const showActiveTabContainer = tab =>
-    tab === active ? 'active-tab-container' : '';
+  const showActiveTabContainer = (tab) =>
+    tab === active ? "active-tab-container" : "";
 
   // Listen for Tab changes and set the Active Tab.
   useEffect(() => {

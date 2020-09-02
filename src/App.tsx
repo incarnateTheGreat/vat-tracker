@@ -613,6 +613,7 @@ function App() {
       if (e.key === "Escape") {
         deselectFlightFunc();
         deselectAirportFunc();
+        setToggleNavigationMenu(false);
       }
     };
 
@@ -655,14 +656,15 @@ function App() {
 
       return (
         <Popup longitude={current_longitude} latitude={current_latitude}>
-          <div>
-            <h3>{callsign}</h3>
-            <h5>{real_name}</h5>
-            <div>{planned_dep_airport__icao}</div>
-            <div>{planned_dest_airport__icao}</div>
-            <div>{getTypeOfAircraft(planned_aircraft)}</div>
-            <div>{current_altitude} FT.</div>
+          <h3>{callsign}</h3>
+          <h4>{real_name}</h4>
+          <div className="mapboxgl-popup-route">
+            <span>{planned_dep_airport__icao}</span>
+            <span className="mapboxgl-popup-route-arrow">&#10132;</span>
+            <span>{planned_dest_airport__icao}</span>
           </div>
+          <div>{getTypeOfAircraft(planned_aircraft)}</div>
+          <div>{current_altitude} FT.</div>
         </Popup>
       );
     }
@@ -761,7 +763,11 @@ function App() {
                   e.currentTarget.src = handleIcon(clusterObj);
                   setDisplayPopup(null);
                 }}
-                className="marker-image"
+                className={
+                  viewport.zoom < 9
+                    ? `marker-image`
+                    : `marker-image marker-image-zoom`
+                }
                 src={handleIcon(clusterObj)}
                 alt={clusterObj.properties.callsign}
                 style={{
