@@ -326,7 +326,7 @@ function App() {
             "line-cap": "round",
           },
           paint: {
-            "line-color": "#de3a1f",
+            "line-color": "#5b94c6",
             "line-width": 3,
           },
         });
@@ -372,48 +372,34 @@ function App() {
         //   },
         // });
 
-        // map.addLayer({
-        //   id: "route-points",
-        //   type: "circle",
-        //   source: {
-        //     type: "geojson",
-        //     features: [
-        //       {
-        //         type: "Feature",
-        //         geometry: {
-        //           type: "Point",
-        //           coordinates: [49.8537377, -97.2923063],
-        //         },
-        //       },
-        //     ],
-        //   },
-        //   // layout: {
-        //   //   visibility: "none",
-        //   // },
-        //   paint: {
-        //     "circle-radius": 10,
-        //     "circle-color": "#5b94c6",
-        //     "circle-opacity": 1,
-        //   },
-        // });
+        map.addLayer({
+          id: "route-points",
+          type: "circle",
+          source: {
+            type: "geojson",
+            features: [
+              {
+                type: "Feature",
+                geometry: {
+                  type: "Point",
+                  coordinates: [49.8537377, -97.2923063],
+                },
+              },
+            ],
+          },
+          // layout: {
+          //   visibility: "none",
+          // },
+          paint: {
+            "circle-radius": 10,
+            "circle-color": "#5b94c6",
+            "circle-opacity": 1,
+          },
+        });
 
         if (transitionToFlightLoc) {
           navigateToFlight(location);
         }
-
-        // const [first, last] = [
-        //   coordinates[0],
-        //   coordinates[coordinates.length - 1],
-        // ];
-
-        // map.fitBounds([first, last], {
-        //   padding: 20,
-        // });
-
-        // setSuperClusterData({
-        //   ...superClusterData,
-        //   bounds: [first, last],
-        // });
       }
     },
     []
@@ -495,8 +481,6 @@ function App() {
     flightID: ICluster,
     transitionToFlightLoc: boolean = false
   ) => {
-    console.log(flightID);
-
     const selectedFlightData: IFlightVatStatsDetails = await getFlight(
       flightID
     );
@@ -553,13 +537,8 @@ function App() {
     }
   };
 
-  // Go through the process of Selecting an Airport.
-  const selectAirportFunc = async (icao) => {
-    deselectFlightFunc();
-    deselectAirportFunc();
-    setToggleNavigationMenu(false);
-    setLoading(true);
-
+  // Collect selected Airport data.
+  const getAirportData = async (icao) => {
     let airportData = await getAirport(icao);
     const taf: ITAF = await getTAF(airportData.icao);
     const metar: IMetar = await getMETAR(airportData.icao);
@@ -574,7 +553,7 @@ function App() {
       (arrival) => airportData.icao === arrival.planned_dest_airport__icao
     );
 
-    airportData = {
+    return (airportData = {
       ...airportData,
       arrivals,
       departures,
@@ -583,7 +562,17 @@ function App() {
         ...metar["M"]["decoded"],
         metar_raw: metar["M"]["report"],
       },
-    };
+    });
+  };
+
+  // Go through the process of Selecting an Airport.
+  const selectAirportFunc = async (icao) => {
+    deselectFlightFunc();
+    deselectAirportFunc();
+    setToggleNavigationMenu(false);
+    setLoading(true);
+
+    const airportData = await getAirportData(icao);
 
     await navigateToAirport(airportData);
 
@@ -597,6 +586,21 @@ function App() {
     handleGetFlightData();
     getUpdatedWeather();
   }, 15000);
+
+  // If an Airport is selected, continue to update it with its latest information.
+  useEffect(() => {
+    if (selectedAirport) {
+      const updateSelectedAirportData = async () => {
+        const airportData = await getAirportData(selectedAirport.icao);
+
+        console.log(airportData);
+
+        setSelectedAirport(airportData);
+      };
+
+      updateSelectedAirportData();
+    }
+  }, [flightData]);
 
   useEffect(() => {
     if (!checkStillActive()) {
@@ -671,10 +675,6 @@ function App() {
 
     return null;
   };
-
-  useInterval(() => {
-    handleGetFlightData();
-  }, 15000);
 
   useEffect(() => {
     const bounds =

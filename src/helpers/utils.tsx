@@ -66,6 +66,8 @@ export const getTypeOfAircraft = (aircraft) => {
     return "A3XX";
   } else if (aircraft.includes("B74")) {
     return "B747";
+  } else if (aircraft.includes("C75")) {
+    return "Citation X";
   } else if (aircraft.includes("DH")) {
     return "DASH-8";
   } else if (aircraft.includes("C13")) {

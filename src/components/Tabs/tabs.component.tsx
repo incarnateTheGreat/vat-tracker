@@ -4,6 +4,7 @@ export const Tabs = (props) => {
   const { tabData, activeTab = 0, className = "" } = props;
   const [activeTabNumber, setActiveTabNumber] = useState(0);
   const [active, setActive] = useState(tabData[activeTabNumber] || tabData[0]);
+  const [latestTabData, setLatestTabData] = useState([]);
 
   const changeTabView = (key) => () => {
     setActive(tabData[key]);
@@ -25,16 +26,22 @@ export const Tabs = (props) => {
     setActive(tabData[activeTabNumber] || tabData[0]);
   }, [activeTabNumber, tabData]);
 
+  // Update Active
   useEffect(() => {
     setActive(tabData[activeTab]);
 
     setActiveTabNumber(activeTab);
   }, [activeTab, tabData]);
 
+  // Update the active data when new prop data is passed in.
+  useEffect(() => {
+    setLatestTabData(tabData);
+  }, [tabData]);
+
   return (
     <div className={`Tabs ${className}`}>
       <ul className="Tabs-menu">
-        {tabData.map((tab: any, key: number) => {
+        {latestTabData.map((tab: any, key: number) => {
           return (
             <li
               role="menuitem"
@@ -48,7 +55,7 @@ export const Tabs = (props) => {
         })}
       </ul>
       <div className="Tabs-body">
-        {tabData.map((tab: any, key: number) => {
+        {latestTabData.map((tab: any, key: number) => {
           return (
             <div
               className={`Tabs-body-container ${showActiveTabContainer(tab)}`}
