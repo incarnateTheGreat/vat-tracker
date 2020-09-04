@@ -183,6 +183,7 @@ function App() {
     location,
     planned_depairport,
     planned_route,
+    completed_route,
     planned_destairport,
     transitionToFlightLoc
   ) => {
@@ -196,7 +197,12 @@ function App() {
     if (decodedFlightRoute.encodedPolyline) {
       const routeData = await fetchRoute(decodedFlightRoute.id);
 
-      drawRoute(routeData.route.nodes, location, transitionToFlightLoc);
+      drawRoute(
+        routeData.route.nodes,
+        completed_route,
+        location,
+        transitionToFlightLoc
+      );
     } else {
       drawRoute(null);
 
@@ -212,23 +218,24 @@ function App() {
       // Remove Route and its source.
       map.removeLayer("route").removeSource("route");
 
+      map.removeLayer("route-completed").removeSource("route-completed");
+
       // Remove the Waypoints and its source.
       map.removeLayer("route-idents").removeSource("route-idents");
 
-      // if (map.getLayer("route-points")) {
       // Remove the Waypoints idents.
       map.removeLayer("route-points").removeSource("route-points");
-      // }
-
-      // if (map.getLayer("route-points-id")) {
-      //   map.removeLayer("route-points-id").removeSource("route-points-id");
-      // }
     }
   };
 
   // Draw the Waypoints of the Selected Flight.
   const drawRoute = useCallback(
-    (flightCoordinates, location?, transitionToFlightLoc = false) => {
+    (
+      flightCoordinates,
+      completed_route?,
+      location?,
+      transitionToFlightLoc = false
+    ) => {
       const map = mapRef.current.getMap();
 
       removeRoute();
@@ -243,52 +250,14 @@ function App() {
           return r;
         }, []);
 
-        var createGeoJSONCircle = function (
-          { latitude, longitude },
-          radiusInKm = 10,
-          points
-        ) {
-          if (!points) points = 64;
+        // Assemble Completed Coordinates.
+        const completedRouteCoordinates = completed_route.reduce((r, acc) => {
+          const { latitude, longitude } = acc;
 
-          // var coords = {
-          //     latitude: center[1],
-          //     longitude: center[0]
-          // };
+          r.push([longitude, latitude]);
 
-          var km = radiusInKm;
-
-          var ret: any[] = [];
-          var distanceX = km / (111.32 * Math.cos((latitude * Math.PI) / 180));
-          var distanceY = km / 110.574;
-
-          console.log(distanceX, distanceY);
-
-          var theta, x, y;
-          for (var i = 0; i < points; i++) {
-            theta = (i / points) * (2 * Math.PI);
-            x = distanceX * Math.cos(theta);
-            y = distanceY * Math.sin(theta);
-
-            ret.push([longitude + x, latitude + y]);
-          }
-          ret.push(ret[0]);
-
-          return {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: [
-                {
-                  type: "Feature",
-                  geometry: {
-                    type: "Polygon",
-                    coordinates: [ret],
-                  },
-                },
-              ],
-            },
-          };
-        };
+          return r;
+        }, []);
 
         // Assemble GeoJSON Data.
         const parseCoordsData = flightCoordinates.reduce((r, acc) => {
@@ -332,6 +301,32 @@ function App() {
           paint: {
             "line-color": "#5b94c6",
             "line-width": 3,
+            "line-opacity": 0.5,
+          },
+        });
+
+        map.addLayer({
+          id: "route-completed",
+          type: "line",
+          source: {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "LineString",
+                coordinates: completedRouteCoordinates,
+              },
+            },
+          },
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-width": ["get", "width"],
+            "line-dasharray": [4, 4],
+            "line-color": "red",
           },
         });
 
@@ -469,6 +464,7 @@ function App() {
       { latitude: current_latitude, longitude: current_longitude },
       selectedFlightData.planned_dep_airport.icao,
       selectedFlightData.planned_route,
+      selectedFlightData.data_points,
       selectedFlightData.planned_dest_airport.icao,
       transitionToFlightLoc
     );
