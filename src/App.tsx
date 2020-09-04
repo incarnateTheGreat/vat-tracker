@@ -343,7 +343,7 @@ function App() {
             },
           },
           layout: {
-            // get the title name from the source's "title" property
+            // Get the title name from the source's "title" property.
             "text-field": ["get", "title"],
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
             "text-offset": [0, 0.5],
@@ -351,49 +351,28 @@ function App() {
           },
         });
 
-        // Draw the Route Waypoint circles..
-        // map.addSource(
-        //   "polygon",
-        //   createGeoJSONCircle(
-        //     { latitude: 41.58527859, longitude: -93.6248586 },
-        //     10,
-        //     0.5
-        //   )
-        // );
-
-        // map.addLayer({
-        //   id: "polygon",
-        //   type: "fill",
-        //   source: "polygon",
-        //   layout: {},
-        //   paint: {
-        //     "fill-color": "red",
-        //     "fill-opacity": 1,
-        //   },
-        // });
-
+        // Draw the Route Waypoint Circle Points.
         map.addLayer({
           id: "route-points",
-          type: "circle",
+          type: "symbol",
           source: {
             type: "geojson",
-            features: [
-              {
-                type: "Feature",
-                geometry: {
-                  type: "Point",
-                  coordinates: [49.8537377, -97.2923063],
-                },
-              },
-            ],
+            data: {
+              type: "FeatureCollection",
+              features: parseCoordsData,
+            },
           },
-          // layout: {
-          //   visibility: "none",
-          // },
+        });
+
+        // Style the Route Waypoint Circle Points.
+        map.addLayer({
+          id: "route-points-id",
+          type: "circle",
+          source: "route-points",
           paint: {
-            "circle-radius": 10,
-            "circle-color": "#5b94c6",
-            "circle-opacity": 1,
+            // Use get expression to get the radius property. Divided by 10 to be able to display it.
+            "circle-radius": ["/", ["get", "radius"], 110],
+            "circle-color": "#426d93",
           },
         });
 
