@@ -215,10 +215,14 @@ function App() {
       // Remove the Waypoints and its source.
       map.removeLayer("route-idents").removeSource("route-idents");
 
-      if (map.getLayer("route-points")) {
-        // Remove the Waypoints circles..
-        map.removeLayer("route-points").removeSource("route-points");
-      }
+      // if (map.getLayer("route-points")) {
+      // Remove the Waypoints idents.
+      map.removeLayer("route-points").removeSource("route-points");
+      // }
+
+      // if (map.getLayer("route-points-id")) {
+      //   map.removeLayer("route-points-id").removeSource("route-points-id");
+      // }
     }
   };
 
@@ -354,7 +358,7 @@ function App() {
         // Draw the Route Waypoint Circle Points.
         map.addLayer({
           id: "route-points",
-          type: "symbol",
+          type: "circle",
           source: {
             type: "geojson",
             data: {
@@ -362,13 +366,6 @@ function App() {
               features: parseCoordsData,
             },
           },
-        });
-
-        // Style the Route Waypoint Circle Points.
-        map.addLayer({
-          id: "route-points-id",
-          type: "circle",
-          source: "route-points",
           paint: {
             // Use get expression to get the radius property. Divided by 10 to be able to display it.
             "circle-radius": ["/", ["get", "radius"], 110],
