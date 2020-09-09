@@ -13,6 +13,13 @@
         grid-template-columns: auto;
         padding: 5px;
 
+        &-no-data {
+          border: 1px dotted;
+          border-radius: 2px 2px 0 0;
+          font-weight: bold;
+          padding: 10px;
+        }
+
         .Tabs {
           margin: 5px 0 0;
         }
@@ -24,9 +31,15 @@
           &-arrivals {
             display: grid;
             font-size: $size-14;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             grid-gap: 0.5em;
             padding: 5px;
+
+            &-headers {
+              & > div {
+                cursor: pointer;
+              }
+            }
 
             &:not(:first-child) {
               &:hover {
@@ -43,13 +56,9 @@
               background-color: #ececec;
             }
 
-            // &:hover {
-            //   color: $clr-black4;
-            //   cursor: pointer;
-            // }
-
             &-no-data {
               pointer-events: none;
+
               &:hover {
                 cursor: default;
               }

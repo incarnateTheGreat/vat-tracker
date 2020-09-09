@@ -48,3 +48,24 @@ ul {
     visibility: visible;
   }
 }
+
+// Loading Placeholder
+.placeholder {
+  animation: loading 2s ease infinite;
+  background-color: $clr-placeholder;
+  border-radius: 3px;
+  color: transparent;
+  padding: 5px;
+}
+
+@keyframes loading {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}

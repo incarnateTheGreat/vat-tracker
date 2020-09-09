@@ -185,7 +185,8 @@ function App() {
     planned_route,
     completed_route,
     planned_destairport,
-    transitionToFlightLoc
+    transitionToFlightLoc,
+    isInit
   ) => {
     const decodedFlightRoute = await getDecodedFlightRoute(
       planned_depairport,
@@ -197,11 +198,14 @@ function App() {
     if (decodedFlightRoute.encodedPolyline) {
       const routeData = await fetchRoute(decodedFlightRoute.id);
 
+      console.log(routeData.route);
+
       drawRoute(
-        routeData.route.nodes,
+        routeData.route.nodes ?? null,
         completed_route,
         location,
-        transitionToFlightLoc
+        transitionToFlightLoc,
+        isInit
       );
     } else {
       drawRoute(null);
@@ -234,22 +238,12 @@ function App() {
       flightCoordinates,
       completed_route?,
       location?,
-      transitionToFlightLoc = false
+      transitionToFlightLoc = false,
+      isInit = true
     ) => {
       const map = mapRef.current.getMap();
 
-      removeRoute();
-
       if (flightCoordinates && location) {
-        // Assemble Coordinates.
-        const coordinates = flightCoordinates.reduce((r, acc) => {
-          const { lon, lat } = acc;
-
-          r.push([lon, lat]);
-
-          return r;
-        }, []);
-
         // Assemble Completed Coordinates.
         const completedRouteCoordinates = completed_route.reduce((r, acc) => {
           const { latitude, longitude } = acc;
@@ -259,114 +253,204 @@ function App() {
           return r;
         }, []);
 
-        // Assemble GeoJSON Data.
-        const parseCoordsData = flightCoordinates.reduce((r, acc) => {
-          const { lon, lat, ident } = acc;
+        // If the Flight is newly-selected, then remove any instances of a previous flight.
+        if (isInit) {
+          removeRoute();
 
-          const obj = {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [lon, lat],
-            },
-            properties: {
-              title: ident,
-            },
-          };
+          // Assemble Coordinates.
+          const coordinates = flightCoordinates.reduce((r, acc) => {
+            const { lon, lat } = acc;
 
-          r.push(obj);
+            r.push([lon, lat]);
 
-          return r;
-        }, []);
+            return r;
+          }, []);
 
-        // Draw the Route Line.
-        map.addLayer({
-          id: "route",
-          type: "line",
-          source: {
-            type: "geojson",
-            data: {
+          // Assemble GeoJSON Data.
+          const parseCoordsData = flightCoordinates.reduce((r, acc) => {
+            const { lon, lat, ident } = acc;
+
+            const obj = {
               type: "Feature",
-              properties: {},
               geometry: {
-                type: "LineString",
-                coordinates,
+                type: "Point",
+                coordinates: [lon, lat],
+              },
+              properties: {
+                title: ident,
+              },
+            };
+
+            r.push(obj);
+
+            return r;
+          }, []);
+
+          const parseCompletedCoordsData = completed_route.reduce((r, acc) => {
+            const { longitude, latitude } = acc;
+
+            const obj = {
+              type: "Feature",
+              geometry: {
+                type: "Point",
+                coordinates: [longitude, latitude],
+              },
+            };
+
+            r.push(obj);
+
+            return r;
+          }, []);
+
+          console.log(location);
+          console.log(parseCompletedCoordsData);
+
+          // Draw the Route Line.
+          map.addLayer({
+            id: "route",
+            type: "line",
+            source: {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates,
+                },
               },
             },
-          },
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-          },
-          paint: {
-            "line-color": "#5b94c6",
-            "line-width": 3,
-            "line-opacity": 0.5,
-          },
-        });
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-color": "#5b94c6",
+              "line-width": 3,
+              "line-opacity": 0.5,
+            },
+          });
 
-        map.addLayer({
-          id: "route-completed",
-          type: "line",
-          source: {
-            type: "geojson",
-            data: {
+          // Draw the Route Waypoint Idents.
+          map.addLayer({
+            id: "route-idents",
+            type: "symbol",
+            source: {
+              type: "geojson",
+              data: {
+                type: "FeatureCollection",
+                features: parseCoordsData,
+              },
+            },
+            layout: {
+              // Get the title name from the source's "title" property.
+              "text-field": ["get", "title"],
+              "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+              "text-offset": [0, 0.5],
+              "text-anchor": "top",
+            },
+          });
+
+          // Draw the Route Waypoint Circle Points.
+          map.addLayer({
+            id: "route-points",
+            type: "circle",
+            source: {
+              type: "geojson",
+              data: {
+                type: "FeatureCollection",
+                features: parseCoordsData,
+              },
+            },
+            paint: {
+              // Use get expression to get the radius property. Divided by 10 to be able to display it.
+              "circle-radius": ["/", ["get", "radius"], 110],
+              "circle-color": "#426d93",
+            },
+          });
+
+          // Draw the Completed Route based on real-time data.
+          map.addLayer({
+            id: "route-completed",
+            type: "line",
+            source: {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: completedRouteCoordinates,
+                },
+              },
+            },
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-width": ["get", "width"],
+              "line-dasharray": [4, 4],
+              "line-color": "red",
+            },
+          });
+
+          // Draw the Route Waypoint Circle Points.
+          map.addLayer({
+            id: "route-completed-points",
+            type: "circle",
+            source: {
+              type: "geojson",
+              data: {
+                type: "FeatureCollection",
+                features: parseCompletedCoordsData,
+              },
+            },
+            paint: {
+              // Use get expression to get the radius property. Divided by 10 to be able to display it.
+              "circle-radius": ["/", ["get", "radius"], 110],
+              "circle-color": "red",
+            },
+          });
+        } else {
+          if (map.getLayer("route-completed")) {
+            map.getSource("route-completed").setData({
               type: "Feature",
               properties: {},
               geometry: {
                 type: "LineString",
                 coordinates: completedRouteCoordinates,
               },
-            },
-          },
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-          },
-          paint: {
-            "line-width": ["get", "width"],
-            "line-dasharray": [4, 4],
-            "line-color": "red",
-          },
-        });
+            });
 
-        // Draw the Route Waypoint Idents.
-        map.addLayer({
-          id: "route-idents",
-          type: "symbol",
-          source: {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: parseCoordsData,
-            },
-          },
-          layout: {
-            // Get the title name from the source's "title" property.
-            "text-field": ["get", "title"],
-            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-offset": [0, 0.5],
-            "text-anchor": "top",
-          },
-        });
+            const parseCompletedCoordsData = completed_route.reduce(
+              (r, acc) => {
+                const { longitude, latitude } = acc;
 
-        // Draw the Route Waypoint Circle Points.
-        map.addLayer({
-          id: "route-points",
-          type: "circle",
-          source: {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: parseCoordsData,
-            },
-          },
-          paint: {
-            // Use get expression to get the radius property. Divided by 10 to be able to display it.
-            "circle-radius": ["/", ["get", "radius"], 110],
-            "circle-color": "#426d93",
-          },
-        });
+                const obj = {
+                  type: "Feature",
+                  geometry: {
+                    type: "Point",
+                    coordinates: [longitude, latitude],
+                  },
+                };
+
+                r.push(obj);
+
+                return r;
+              },
+              []
+            );
+
+            map.getSource("route-completed-points").setData({
+              type: "circle",
+              geometry: {
+                type: "FeatureCollection",
+                features: parseCompletedCoordsData,
+              },
+            });
+          }
+        }
 
         if (transitionToFlightLoc) {
           navigateToFlight(location);
@@ -377,8 +461,6 @@ function App() {
   );
 
   const navigateToFlight = (location) => {
-    console.log(location);
-
     const { longitude, latitude } = location;
 
     setViewport({
@@ -441,6 +523,7 @@ function App() {
     [latestWeatherTimestamp]
   );
 
+  // Update the Weather Radar data.
   const getUpdatedWeather = useCallback(
     async (isInit = false) => {
       await drawWeather(isInit);
@@ -448,9 +531,17 @@ function App() {
     [drawWeather]
   );
 
+  // Update the Selected Flight data.
+  const getUpdatedSelectedFlight = async () => {
+    if (selectedFlight) {
+      selectFlight(selectedFlight.id, false, false);
+    }
+  };
+
   const selectFlight = async (
-    flightID: ICluster,
-    transitionToFlightLoc: boolean = false
+    flightID,
+    transitionToFlightLoc: boolean = false,
+    isInit: boolean = true
   ) => {
     const selectedFlightData: IFlightVatStatsDetails = await getFlight(
       flightID
@@ -466,7 +557,8 @@ function App() {
       selectedFlightData.planned_route,
       selectedFlightData.data_points,
       selectedFlightData.planned_dest_airport.icao,
-      transitionToFlightLoc
+      transitionToFlightLoc,
+      isInit
     );
   };
 
@@ -557,6 +649,7 @@ function App() {
   useInterval(() => {
     handleGetFlightData();
     getUpdatedWeather();
+    getUpdatedSelectedFlight();
   }, 15000);
 
   // If an Airport is selected, continue to update it with its latest information.
@@ -564,8 +657,6 @@ function App() {
     if (selectedAirport) {
       const updateSelectedAirportData = async () => {
         const airportData = await getAirportData(selectedAirport.icao);
-
-        console.log(airportData);
 
         setSelectedAirport(airportData);
       };
@@ -733,6 +824,7 @@ function App() {
                 }}
                 onMouseOut={(e) => {
                   e.currentTarget.src = handleIcon(clusterObj);
+
                   setDisplayPopup(null);
                 }}
                 className={

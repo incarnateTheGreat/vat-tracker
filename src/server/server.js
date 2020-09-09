@@ -93,7 +93,6 @@ app.use("/api/airport", (req, res) => {
   });
 });
 
-// TODO: DECIDE WHETHER OR NOT TO KEEP THIS.
 app.use("/api/decode-route", (req, res) => {
   const { origin, route, destination } = req.query;
 
