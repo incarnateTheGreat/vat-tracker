@@ -74,6 +74,13 @@ export const getAirport = async (id) => {
   }).then((res) => res.data);
 };
 
+// Get all FIRs.
+export const getFIRs = async () => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/firs`).then(
+    (res) => res.data
+  );
+};
+
 // Get Flight Data from Vat-Stats.
 export const getFlight = async (id) => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flight`, {

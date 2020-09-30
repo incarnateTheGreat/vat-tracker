@@ -93,6 +93,17 @@ app.use("/api/airport", (req, res) => {
   });
 });
 
+app.use("/api/firs", (req, res) => {
+  const options = {
+    url: `https://simaware.ca/api/onlineatc`,
+    method: "GET",
+  };
+
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
+
 app.use("/api/decode-route", (req, res) => {
   const { origin, route, destination } = req.query;
 
@@ -107,7 +118,7 @@ app.use("/api/decode-route", (req, res) => {
     method: "POST",
     form: { route: routeStr },
     headers: {
-      Authorization: "Basic EEX0ovsK0oa4SDYT1g4XqOOZEnKvU6e9yj0ZhX9Q",
+      Authorization: `Basic ${process.env.ROUTE_TOKEN}`,
     },
   };
 
@@ -126,7 +137,7 @@ app.use("/api/fetch-route", (req, res) => {
     url: `https://api.flightplandatabase.com/plan/${id}`,
     method: "GET",
     headers: {
-      Authorization: "Basic EEX0ovsK0oa4SDYT1g4XqOOZEnKvU6e9yj0ZhX9Q",
+      Authorization: `Basic ${process.env.ROUTE_TOKEN}`,
     },
   };
 

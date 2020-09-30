@@ -193,7 +193,7 @@ export const AirportData = ({
                       );
                     }}
                   >
-                    From
+                    User ID
                   </div>
                   <div
                     className="grid-container-airport-flights-arrivals-arrival"
@@ -204,7 +204,7 @@ export const AirportData = ({
                       );
                     }}
                   >
-                    To
+                    From
                   </div>
                   <div
                     className="grid-container-airport-flights-arrivals-arrival"

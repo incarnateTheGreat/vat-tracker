@@ -36,6 +36,7 @@ export const Autocomplete = (props) => {
   const handleSearch = useCallback(
     async (query, overrideItemData?) => {
       const itemData = overrideItemData ?? items;
+
       let sortedResultLocal = [];
 
       // If the Items' children are objects, then filter and map out results. Otherwise, treat the Items as a one-dimensional Array.
@@ -69,6 +70,8 @@ export const Autocomplete = (props) => {
 
   // Navigate through results using Up/Down Keys.
   const navigateItems = (e) => {
+    e.preventDefault();
+
     if (
       sortedResult.length > 0 &&
       (e.key === "ArrowUp" || e.key === "ArrowDown")
@@ -89,8 +92,9 @@ export const Autocomplete = (props) => {
             checkBoundary(listElemsLength, selectedElement.tabIndex + 1)
           ].focus();
           break;
-        default:
+        default: {
           break;
+        }
       }
     } else if (e.key === "Enter") {
       selectItem(e);
@@ -180,10 +184,28 @@ export const Autocomplete = (props) => {
 
   // If the input requires a data render, and the Input is disabled, re-enable it once the Loading Spinner has disabled and the data is ready.
   useEffect(() => {
-    if (!loading && inputRef.current.value.length > 0) {
+    if (!loading && usesService && inputRef.current.value.length > 0) {
       inputRef.current.focus();
     }
-  }, [loading, inputRef]);
+  }, [loading, usesService]);
+
+  // Close the Autocopmlete results list when the user clicks anywhere outside of it.
+  useEffect(() => {
+    document.addEventListener("click", clickListener);
+
+    // Reset the Popover position to default.
+    return () => {
+      document.removeEventListener("click", clickListener);
+    };
+  }, [sortedResult]);
+
+  // Listener that closes the Autocomplete results list when the user clicks away from it.
+  const clickListener = () => {
+    if (sortedResult.length > 0) {
+      setSortedResult([]);
+      setSelectedValue("");
+    }
+  };
 
   return (
     <div className="autocomplete">
@@ -216,7 +238,7 @@ export const Autocomplete = (props) => {
                 <span
                   role="presentation"
                   className="autocomplete-result"
-                  onKeyUp={navigateItems}
+                  onKeyDown={navigateItems}
                   onClick={() => onSelect(item)}
                   key={i}
                   tabIndex={i}

@@ -6,6 +6,7 @@ import ReactMapGL, {
   NavigationControl,
   Popup,
 } from "react-map-gl";
+import mapboxgl from "mapbox-gl";
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
 import { getTypeOfAircraft } from "./helpers/utils";
@@ -20,6 +21,7 @@ import {
   getWeather,
   getFlights,
   getFlight,
+  getFIRs,
 } from "./api/api";
 
 // Interfaces
@@ -32,6 +34,7 @@ import {
   IViewport,
   IFlightVatStatsDetails,
   IFlightVatStats,
+  IFirs,
 } from "./declaration/app";
 
 // Utilities
@@ -58,6 +61,7 @@ function App() {
     zoom: 1,
   });
   const [flightData, setFlightData] = useState<IFlightVatStats[] | null>([]);
+  const [onlineFirs, setOnlineFirs] = useState<IFirs[]>([]);
   const [plannedDepartures, setPlannedDepartures] = useState<
     IFlightVatStats[] | null
   >([]);
@@ -92,7 +96,7 @@ function App() {
         ? mapRef.current.getMap().getBounds().toArray().flat()
         : null,
     zoom: viewport.zoom,
-    options: { radius: 75, maxZoom: 10 },
+    options: { radius: 200, maxZoom: 10 },
   });
 
   const handleGetFlightData = useCallback(async () => {
@@ -107,6 +111,15 @@ function App() {
         setFlightData(null);
       }, 2000);
     }
+  }, []);
+
+  // Get FIRs data
+  const handleGetFIRsData = useCallback(async () => {
+    const data = await getFIRs();
+
+    setOnlineFirs(data);
+
+    drawOnlineFIRs(data);
   }, []);
 
   // Click on a Cluster and zoom in to its active children.
@@ -188,25 +201,31 @@ function App() {
     transitionToFlightLoc,
     isInit
   ) => {
-    const decodedFlightRoute = await getDecodedFlightRoute(
-      planned_depairport,
-      planned_route,
-      planned_destairport
-    );
-
-    // Draw out the Polyline route, but only if the service successfully returns data.
-    if (decodedFlightRoute.encodedPolyline) {
-      const routeData = await fetchRoute(decodedFlightRoute.id);
-
-      console.log(routeData.route);
-
-      drawRoute(
-        routeData.route.nodes ?? null,
-        completed_route,
-        location,
-        transitionToFlightLoc,
-        isInit
+    if (planned_depairport && planned_destairport) {
+      const decodedFlightRoute = await getDecodedFlightRoute(
+        planned_depairport,
+        planned_route,
+        planned_destairport
       );
+
+      // Draw out the Polyline route, but only if the service successfully returns data.
+      if (decodedFlightRoute.encodedPolyline) {
+        const routeData = await fetchRoute(decodedFlightRoute.id);
+
+        console.log(routeData.route?.nodes ?? null);
+
+        drawRoute(
+          routeData.route?.nodes ?? null,
+          completed_route,
+          location,
+          transitionToFlightLoc,
+          isInit
+        );
+      } else {
+        drawRoute(null);
+
+        navigateToFlight(location);
+      }
     } else {
       drawRoute(null);
 
@@ -243,6 +262,22 @@ function App() {
     ) => {
       const map = mapRef.current.getMap();
 
+      // let parseCompletedCoordsData = completed_route.reduce((r, acc) => {
+      //   const { longitude, latitude } = acc;
+
+      //   const obj = {
+      //     type: "Feature",
+      //     geometry: {
+      //       type: "Point",
+      //       coordinates: [longitude, latitude],
+      //     },
+      //   };
+
+      //   r.push(obj);
+
+      //   return r;
+      // }, []);
+
       if (flightCoordinates && location) {
         // Assemble Completed Coordinates.
         const completedRouteCoordinates = completed_route.reduce((r, acc) => {
@@ -266,6 +301,21 @@ function App() {
             return r;
           }, []);
 
+          for (let coord = 0; coord < coordinates.length; coord++) {
+            if (coord > 0) {
+              let startLng = coordinates[coord - 1][0];
+              let endLng = coordinates[coord][0];
+
+              if (endLng - startLng >= 180) {
+                console.log(startLng, endLng);
+
+                coordinates[coord][0] -= 360;
+              } else if (startLng + endLng >= 180) {
+                coordinates[coord][0] += 360;
+              }
+            }
+          }
+
           // Assemble GeoJSON Data.
           const parseCoordsData = flightCoordinates.reduce((r, acc) => {
             const { lon, lat, ident } = acc;
@@ -286,25 +336,6 @@ function App() {
             return r;
           }, []);
 
-          const parseCompletedCoordsData = completed_route.reduce((r, acc) => {
-            const { longitude, latitude } = acc;
-
-            const obj = {
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [longitude, latitude],
-              },
-            };
-
-            r.push(obj);
-
-            return r;
-          }, []);
-
-          console.log(location);
-          console.log(parseCompletedCoordsData);
-
           // Draw the Route Line.
           map.addLayer({
             id: "route",
@@ -323,6 +354,7 @@ function App() {
             layout: {
               "line-join": "round",
               "line-cap": "round",
+              "line-round-limit": 10,
             },
             paint: {
               "line-color": "#5b94c6",
@@ -347,7 +379,13 @@ function App() {
               "text-field": ["get", "title"],
               "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
               "text-offset": [0, 0.5],
+              "text-size": 12,
               "text-anchor": "top",
+            },
+            paint: {
+              "text-color": "#202",
+              "text-halo-color": "#fff",
+              "text-halo-width": 50,
             },
           });
 
@@ -369,6 +407,23 @@ function App() {
             },
           });
 
+          // for (
+          //   let coord = 0;
+          //   coord < completedRouteCoordinates.length;
+          //   coord++
+          // ) {
+          //   if (coord > 0) {
+          //     let startLng = completedRouteCoordinates[coord - 1][0];
+          //     let endLng = completedRouteCoordinates[coord][0];
+
+          //     if (endLng - startLng >= 180) {
+          //       completedRouteCoordinates[coord][0] -= 360;
+          //     } else if (endLng - startLng < 180) {
+          //       completedRouteCoordinates[coord][0] += 360;
+          //     }
+          //   }
+          // }
+
           // Draw the Completed Route based on real-time data.
           map.addLayer({
             id: "route-completed",
@@ -387,6 +442,7 @@ function App() {
             layout: {
               "line-join": "round",
               "line-cap": "round",
+              "line-round-limit": 10,
             },
             paint: {
               "line-width": ["get", "width"],
@@ -396,22 +452,22 @@ function App() {
           });
 
           // Draw the Route Waypoint Circle Points.
-          map.addLayer({
-            id: "route-completed-points",
-            type: "circle",
-            source: {
-              type: "geojson",
-              data: {
-                type: "FeatureCollection",
-                features: parseCompletedCoordsData,
-              },
-            },
-            paint: {
-              // Use get expression to get the radius property. Divided by 10 to be able to display it.
-              "circle-radius": ["/", ["get", "radius"], 110],
-              "circle-color": "red",
-            },
-          });
+          // map.addLayer({
+          //   id: "route-completed-points",
+          //   type: "circle",
+          //   source: {
+          //     type: "geojson",
+          //     data: {
+          //       type: "FeatureCollection",
+          //       features: parseCompletedCoordsData,
+          //     },
+          //   },
+          //   paint: {
+          //     // Use get expression to get the radius property. Divided by 10 to be able to display it.
+          //     "circle-radius": ["/", ["get", "radius"], 110],
+          //     "circle-color": "red",
+          //   },
+          // });
         } else {
           if (map.getLayer("route-completed")) {
             map.getSource("route-completed").setData({
@@ -423,34 +479,40 @@ function App() {
               },
             });
 
-            const parseCompletedCoordsData = completed_route.reduce(
-              (r, acc) => {
-                const { longitude, latitude } = acc;
+            // const parseCompletedCoordsData = completed_route.reduce(
+            //   (r, acc) => {
+            //     const { longitude, latitude } = acc;
 
-                const obj = {
-                  type: "Feature",
-                  geometry: {
-                    type: "Point",
-                    coordinates: [longitude, latitude],
-                  },
-                };
+            //     const obj = {
+            //       type: "Feature",
+            //       geometry: {
+            //         type: "Point",
+            //         coordinates: [longitude, latitude],
+            //       },
+            //     };
 
-                r.push(obj);
+            //     r.push(obj);
 
-                return r;
-              },
-              []
-            );
+            //     return r;
+            //   },
+            //   []
+            // );
 
-            map.getSource("route-completed-points").setData({
-              type: "circle",
-              geometry: {
-                type: "FeatureCollection",
-                features: parseCompletedCoordsData,
-              },
-            });
+            // map.getSource("route-completed-points").setData({
+            //   type: "circle",
+            //   geometry: {
+            //     type: "FeatureCollection",
+            //     features: parseCompletedCoordsData,
+            //   },
+            // });
           }
         }
+
+        // console.log(
+        //   "Line Data: ",
+        //   parseCompletedCoordsData[parseCompletedCoordsData.length - 1].geometry
+        //     .coordinates
+        // );
 
         if (transitionToFlightLoc) {
           navigateToFlight(location);
@@ -460,6 +522,7 @@ function App() {
     []
   );
 
+  // Navigate the view to the selected flight.
   const navigateToFlight = (location) => {
     const { longitude, latitude } = location;
 
@@ -474,6 +537,7 @@ function App() {
     });
   };
 
+  // Navigate the view to the selected airport.
   const navigateToAirport = (location) => {
     const { longitude, latitude } = location;
 
@@ -490,6 +554,120 @@ function App() {
     });
   };
 
+  // Draw the Online FIRs
+  const drawOnlineFIRs = useCallback((onlineFirs) => {
+    if (Object.keys(onlineFirs).length > 0) {
+      const map = mapRef.current.getMap();
+
+      // Get the existing FIR Layer Keys.
+      const firLayers = mapRef.current
+        .getMap()
+        .getStyle()
+        .layers.filter(
+          (layer) => layer.id.includes("FIR-") && layer.type === "fill"
+        )
+        .map((layer) => layer.id.replace("FIR-", ""));
+
+      // Get the updated online FIR Keys.
+      const onlineFirKeys = Object.keys(onlineFirs);
+
+      // Loop through the Online FIR Keys to determine what are currently rendered and what should be removed if no longer active.
+      for (const fir of onlineFirKeys) {
+        const { bounds, members, fir: firData } = onlineFirs[fir];
+        const { icao: firIcao, name, prefix } = firData;
+
+        const lineBoundaries: number[][] = [];
+
+        if (!map.getLayer(`FIR-${firIcao}`) && bounds?.length > 0) {
+          // Extract and correct the Boundaries for the FIRs.
+          const boundaries = bounds[0].reduce((r: object[], acc) => {
+            const [lng, lat] = acc;
+
+            // Convert the Lat and Lngs from Strings to Numbers.
+            r.push([+lat, +lng]);
+
+            lineBoundaries.push([+lat, +lng]);
+
+            return r;
+          }, []);
+
+          // To complete the trace of a Line around the Boundary, add the first point to the end of the Line Boundaries Array.
+          lineBoundaries.push(lineBoundaries[0]);
+
+          // Draw the polygon area.
+          map.addLayer({
+            id: `FIR-${firIcao}`,
+            type: "fill",
+            source: {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {
+                  members: { ...members },
+                  name,
+                  prefix,
+                },
+                geometry: {
+                  type: "Polygon",
+                  coordinates: [boundaries],
+                },
+              },
+            },
+            layout: {},
+            paint: {
+              "fill-color": "#1978c8",
+              "fill-opacity": [
+                "case",
+                ["boolean", ["feature-state", "hover"], false],
+                1,
+                0.2,
+              ],
+            },
+          });
+
+          // Give the FIR Boundary a thicker border with a Line.
+          map.addLayer({
+            id: `FIR-${firIcao}-LINE`,
+            type: "line",
+            source: {
+              type: "geojson",
+              data: {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: lineBoundaries,
+                },
+              },
+            },
+            layout: {
+              "line-join": "round",
+              "line-cap": "round",
+            },
+            paint: {
+              "line-color": "#5b94c6",
+              "line-width": 3,
+              "line-opacity": 0.5,
+            },
+          });
+        }
+      }
+
+      // Loop through the active FIR Layers. If they're no longer active, then remove them from the map.
+      for (const firKey of firLayers) {
+        if (!onlineFirKeys.includes(firKey) && map.getLayer(`FIR-${firKey}`)) {
+          map.removeLayer(`FIR-${firKey}`).removeSource(`FIR-${firKey}`);
+          map
+            .removeLayer(`FIR-${firKey}-LINE`)
+            .removeSource(`FIR-${firKey}-LINE`);
+
+          console.log(`Removed FIR-${firKey}`);
+        }
+      }
+    }
+  }, []);
+
+  // Draw the Weather on the map.
   const drawWeather = useCallback(
     async (isInit = false) => {
       const map = mapRef.current.getMap();
@@ -538,6 +716,7 @@ function App() {
     }
   };
 
+  // Collect the extended flight data and then get the route.
   const selectFlight = async (
     flightID,
     transitionToFlightLoc: boolean = false,
@@ -551,12 +730,14 @@ function App() {
 
     setSelectedFlight(selectedFlightData);
 
+    console.log(selectedFlightData);
+
     await getRoute(
       { latitude: current_latitude, longitude: current_longitude },
-      selectedFlightData.planned_dep_airport.icao,
+      selectedFlightData.planned_dep_airport?.icao ?? "",
       selectedFlightData.planned_route,
       selectedFlightData.data_points,
-      selectedFlightData.planned_dest_airport.icao,
+      selectedFlightData.planned_dest_airport?.icao ?? "",
       transitionToFlightLoc,
       isInit
     );
@@ -648,6 +829,7 @@ function App() {
   // Continue to retrieve Flight and Weather data every 15 seconds.
   useInterval(() => {
     handleGetFlightData();
+    drawOnlineFIRs(onlineFirs);
     getUpdatedWeather();
     getUpdatedSelectedFlight();
   }, 15000);
@@ -674,6 +856,7 @@ function App() {
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
     handleGetFlightData();
+    handleGetFIRsData();
     getUpdatedWeather(true);
 
     const listener = (e) => {
@@ -691,6 +874,7 @@ function App() {
     };
   }, [
     handleGetFlightData,
+    handleGetFIRsData,
     drawRoute,
     getUpdatedWeather,
     deselectFlightFunc,
@@ -753,15 +937,62 @@ function App() {
     });
   }, [clusterData, viewport.zoom]);
 
+  const firClickHandler = (lngLat, firResp) => {
+    const isPopupOpen = document.querySelector(".mapboxgl-popup");
+
+    if (isPopupOpen) {
+      isPopupOpen.remove();
+    }
+
+    const yeah = JSON.parse(firResp.properties.members);
+
+    const res: any = Object.values(yeah);
+
+    // const popupContent = res.map((member: any) => {
+    //   return (
+    //     <div>
+    //       <span>{member.callsign}</span>
+    //       <span>{member.name}</span>
+    //     </div>
+    //   );
+    // });
+
+    let popupContent = "";
+
+    for (let i = 0; i < res.length; i++) {
+      popupContent += "<div>";
+      popupContent += `<span>${res[i].callsign}</span>`;
+      popupContent += `<span>${res[i].name}</span>`;
+      popupContent += "</div>";
+    }
+
+    console.log(popupContent);
+
+    new mapboxgl.Popup()
+      .setLngLat(lngLat)
+      .setHTML(popupContent)
+      .addTo(mapRef.current.getMap());
+  };
+
   return (
     <ReactMapGL
       {...viewport}
       doubleClickZoom={!displaySelectedAirport}
       scrollZoom={!displaySelectedAirport}
+      keyboard={toggleNavigationMenu ? false : true}
       mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
       mapStyle="mapbox://styles/incarnate/ckc5i9a5s02w21ipgctm9js0w"
       onViewportChange={(viewportObj: IViewport) => {
         setViewport({ ...viewportObj, height: "100vh", width: "100%" });
+      }}
+      onHover={(e) => {
+        const firResp = e.features?.find(
+          (fir) => fir.layer.id.includes("FIR-") && fir.layer.type === "fill"
+        );
+
+        if (firResp) {
+          firClickHandler(e.lngLat, firResp);
+        }
       }}
       onTransitionEnd={() => {
         if (selectedFlight && !displaySelectedFlight) {

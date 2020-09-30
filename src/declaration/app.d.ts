@@ -67,6 +67,14 @@ export interface IFlightVatStats {
   };
 }
 
+export interface IFirs {
+  boundaries: string;
+  icao: string;
+  id: number;
+  name: string;
+  oceanic: number;
+}
+
 export interface IFlightVatStatsDetails {
   id: number;
   data_points: [
