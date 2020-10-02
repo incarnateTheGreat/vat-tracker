@@ -1,5 +1,18 @@
 .mapboxgl-popup {
   font-size: $size-14;
+  z-index: 1;
+
+  &-content-interior {
+    display: flex;
+    justify-content: space-between;
+    min-width: 200px;
+
+    span {
+      &:first-child {
+        font-weight: bold;
+      }
+    }
+  }
 
   &-route {
     display: flex;

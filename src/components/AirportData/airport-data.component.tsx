@@ -313,6 +313,7 @@ export const AirportData = ({
       case "-RA":
       case "DZ":
       case "DZRA":
+      case "-SHRA":
         return `${iconPath}/wi-rain.svg`;
       case "TS":
       case "-TSRA":

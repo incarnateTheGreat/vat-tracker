@@ -201,7 +201,7 @@ function App() {
     transitionToFlightLoc,
     isInit
   ) => {
-    if (planned_depairport && planned_destairport) {
+    if (planned_depairport && planned_destairport && isInit) {
       const decodedFlightRoute = await getDecodedFlightRoute(
         planned_depairport,
         planned_route,
@@ -212,25 +212,15 @@ function App() {
       if (decodedFlightRoute.encodedPolyline) {
         const routeData = await fetchRoute(decodedFlightRoute.id);
 
-        console.log(routeData.route?.nodes ?? null);
-
-        drawRoute(
+        drawPlannedRoute(
           routeData.route?.nodes ?? null,
-          completed_route,
           location,
-          transitionToFlightLoc,
-          isInit
+          transitionToFlightLoc
         );
-      } else {
-        drawRoute(null);
-
-        navigateToFlight(location);
       }
-    } else {
-      drawRoute(null);
-
-      navigateToFlight(location);
     }
+
+    drawCompletedRoute(completed_route);
   };
 
   // Remove the Waypoints of the Selected Flight.
@@ -241,278 +231,147 @@ function App() {
       // Remove Route and its source.
       map.removeLayer("route").removeSource("route");
 
-      map.removeLayer("route-completed").removeSource("route-completed");
-
       // Remove the Waypoints and its source.
       map.removeLayer("route-idents").removeSource("route-idents");
 
       // Remove the Waypoints idents.
       map.removeLayer("route-points").removeSource("route-points");
     }
+
+    if (map.getLayer("route-completed")) {
+      map.removeLayer("route-completed").removeSource("route-completed");
+    }
+  };
+
+  // In the event that the Aircraft is travelling across the Anti-Merdian (180 deg. Longitude), make sure the Route line continues drawing successfully.
+  const handleAntiMeridian = (coordinates) => {
+    for (let coord = 0; coord < coordinates.length; coord++) {
+      if (coord > 0) {
+        let startLng = coordinates[coord - 1][0];
+        let endLng = coordinates[coord][0];
+
+        // console.log({
+        //   "Lng current": startLng,
+        //   "Lng next": endLng,
+        // });
+
+        if (startLng > 0 && endLng < 0) {
+          coordinates[coord][0] += 360;
+        } else if (startLng < 0 && endLng > 0) {
+          coordinates[coord][0] -= 360;
+        }
+      }
+    }
   };
 
   // Draw the Waypoints of the Selected Flight.
-  const drawRoute = useCallback(
-    (
-      flightCoordinates,
-      completed_route?,
-      location?,
-      transitionToFlightLoc = false,
-      isInit = true
-    ) => {
-      const map = mapRef.current.getMap();
-
-      // let parseCompletedCoordsData = completed_route.reduce((r, acc) => {
-      //   const { longitude, latitude } = acc;
-
-      //   const obj = {
-      //     type: "Feature",
-      //     geometry: {
-      //       type: "Point",
-      //       coordinates: [longitude, latitude],
-      //     },
-      //   };
-
-      //   r.push(obj);
-
-      //   return r;
-      // }, []);
-
+  const drawPlannedRoute = useCallback(
+    (flightCoordinates, location?, transitionToFlightLoc = false) => {
       if (flightCoordinates && location) {
-        // Assemble Completed Coordinates.
-        const completedRouteCoordinates = completed_route.reduce((r, acc) => {
-          const { latitude, longitude } = acc;
+        removeRoute();
 
-          r.push([longitude, latitude]);
+        // Assemble Coordinates.
+        const coordinates = flightCoordinates.reduce((r, acc) => {
+          const { lon, lat } = acc;
+
+          r.push([lon, lat]);
 
           return r;
         }, []);
 
-        // If the Flight is newly-selected, then remove any instances of a previous flight.
-        if (isInit) {
-          removeRoute();
+        // Handle the Anti-Merdian Line.
+        handleAntiMeridian(coordinates);
 
-          // Assemble Coordinates.
-          const coordinates = flightCoordinates.reduce((r, acc) => {
-            const { lon, lat } = acc;
+        // Assemble GeoJSON Data.
+        const parseCoordsData = flightCoordinates.reduce((r, acc) => {
+          const { lon, lat, ident } = acc;
 
-            r.push([lon, lat]);
-
-            return r;
-          }, []);
-
-          for (let coord = 0; coord < coordinates.length; coord++) {
-            if (coord > 0) {
-              let startLng = coordinates[coord - 1][0];
-              let endLng = coordinates[coord][0];
-
-              if (endLng - startLng >= 180) {
-                console.log(startLng, endLng);
-
-                coordinates[coord][0] -= 360;
-              } else if (startLng + endLng >= 180) {
-                coordinates[coord][0] += 360;
-              }
-            }
-          }
-
-          // Assemble GeoJSON Data.
-          const parseCoordsData = flightCoordinates.reduce((r, acc) => {
-            const { lon, lat, ident } = acc;
-
-            const obj = {
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [lon, lat],
-              },
-              properties: {
-                title: ident,
-              },
-            };
-
-            r.push(obj);
-
-            return r;
-          }, []);
-
-          // Draw the Route Line.
-          map.addLayer({
-            id: "route",
-            type: "line",
-            source: {
-              type: "geojson",
-              data: {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates,
-                },
-              },
+          const obj = {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [lon, lat],
             },
-            layout: {
-              "line-join": "round",
-              "line-cap": "round",
-              "line-round-limit": 10,
+            properties: {
+              title: ident,
             },
-            paint: {
-              "line-color": "#5b94c6",
-              "line-width": 3,
-              "line-opacity": 0.5,
-            },
-          });
+          };
 
-          // Draw the Route Waypoint Idents.
-          map.addLayer({
-            id: "route-idents",
-            type: "symbol",
-            source: {
-              type: "geojson",
-              data: {
-                type: "FeatureCollection",
-                features: parseCoordsData,
-              },
-            },
-            layout: {
-              // Get the title name from the source's "title" property.
-              "text-field": ["get", "title"],
-              "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-              "text-offset": [0, 0.5],
-              "text-size": 12,
-              "text-anchor": "top",
-            },
-            paint: {
-              "text-color": "#202",
-              "text-halo-color": "#fff",
-              "text-halo-width": 50,
-            },
-          });
+          r.push(obj);
 
-          // Draw the Route Waypoint Circle Points.
-          map.addLayer({
-            id: "route-points",
-            type: "circle",
-            source: {
-              type: "geojson",
-              data: {
-                type: "FeatureCollection",
-                features: parseCoordsData,
-              },
-            },
-            paint: {
-              // Use get expression to get the radius property. Divided by 10 to be able to display it.
-              "circle-radius": ["/", ["get", "radius"], 110],
-              "circle-color": "#426d93",
-            },
-          });
+          return r;
+        }, []);
 
-          // for (
-          //   let coord = 0;
-          //   coord < completedRouteCoordinates.length;
-          //   coord++
-          // ) {
-          //   if (coord > 0) {
-          //     let startLng = completedRouteCoordinates[coord - 1][0];
-          //     let endLng = completedRouteCoordinates[coord][0];
-
-          //     if (endLng - startLng >= 180) {
-          //       completedRouteCoordinates[coord][0] -= 360;
-          //     } else if (endLng - startLng < 180) {
-          //       completedRouteCoordinates[coord][0] += 360;
-          //     }
-          //   }
-          // }
-
-          // Draw the Completed Route based on real-time data.
-          map.addLayer({
-            id: "route-completed",
-            type: "line",
-            source: {
-              type: "geojson",
-              data: {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: completedRouteCoordinates,
-                },
-              },
-            },
-            layout: {
-              "line-join": "round",
-              "line-cap": "round",
-              "line-round-limit": 10,
-            },
-            paint: {
-              "line-width": ["get", "width"],
-              "line-dasharray": [4, 4],
-              "line-color": "red",
-            },
-          });
-
-          // Draw the Route Waypoint Circle Points.
-          // map.addLayer({
-          //   id: "route-completed-points",
-          //   type: "circle",
-          //   source: {
-          //     type: "geojson",
-          //     data: {
-          //       type: "FeatureCollection",
-          //       features: parseCompletedCoordsData,
-          //     },
-          //   },
-          //   paint: {
-          //     // Use get expression to get the radius property. Divided by 10 to be able to display it.
-          //     "circle-radius": ["/", ["get", "radius"], 110],
-          //     "circle-color": "red",
-          //   },
-          // });
-        } else {
-          if (map.getLayer("route-completed")) {
-            map.getSource("route-completed").setData({
+        // Draw the Route Line.
+        mapRef.current.getMap().addLayer({
+          id: "route",
+          type: "line",
+          source: {
+            type: "geojson",
+            data: {
               type: "Feature",
               properties: {},
               geometry: {
                 type: "LineString",
-                coordinates: completedRouteCoordinates,
+                coordinates,
               },
-            });
+            },
+          },
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+            "line-round-limit": 10,
+          },
+          paint: {
+            "line-color": "#5b94c6",
+            "line-width": 3,
+            "line-opacity": 0.5,
+          },
+        });
 
-            // const parseCompletedCoordsData = completed_route.reduce(
-            //   (r, acc) => {
-            //     const { longitude, latitude } = acc;
+        // Draw the Route Waypoint Idents.
+        mapRef.current.getMap().addLayer({
+          id: "route-idents",
+          type: "symbol",
+          source: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: parseCoordsData,
+            },
+          },
+          layout: {
+            // Get the title name from the source's "title" property.
+            "text-field": ["get", "title"],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-offset": [0, 0.5],
+            "text-size": 12,
+            "text-anchor": "top",
+          },
+          paint: {
+            "text-color": "#202",
+            "text-halo-color": "#fff",
+            "text-halo-width": 50,
+          },
+        });
 
-            //     const obj = {
-            //       type: "Feature",
-            //       geometry: {
-            //         type: "Point",
-            //         coordinates: [longitude, latitude],
-            //       },
-            //     };
-
-            //     r.push(obj);
-
-            //     return r;
-            //   },
-            //   []
-            // );
-
-            // map.getSource("route-completed-points").setData({
-            //   type: "circle",
-            //   geometry: {
-            //     type: "FeatureCollection",
-            //     features: parseCompletedCoordsData,
-            //   },
-            // });
-          }
-        }
-
-        // console.log(
-        //   "Line Data: ",
-        //   parseCompletedCoordsData[parseCompletedCoordsData.length - 1].geometry
-        //     .coordinates
-        // );
+        // Draw the Route Waypoint Circle Points.
+        mapRef.current.getMap().addLayer({
+          id: "route-points",
+          type: "circle",
+          source: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: parseCoordsData,
+            },
+          },
+          paint: {
+            // Use get expression to get the radius property. Divided by 10 to be able to display it.
+            "circle-radius": ["/", ["get", "radius"], 110],
+            "circle-color": "#426d93",
+          },
+        });
 
         if (transitionToFlightLoc) {
           navigateToFlight(location);
@@ -521,6 +380,61 @@ function App() {
     },
     []
   );
+
+  const drawCompletedRoute = (completed_route) => {
+    // Assemble Completed Coordinates.
+    const completedRouteCoordinates = completed_route.reduce((r, acc) => {
+      const { latitude, longitude } = acc;
+
+      r.push([longitude, latitude]);
+
+      return r;
+    }, []);
+
+    // Handle the Anti-Merdian Line for the Completed Route.
+    handleAntiMeridian(completedRouteCoordinates);
+
+    if (mapRef.current.getMap().getLayer("route-completed")) {
+      mapRef.current
+        .getMap()
+        .getSource("route-completed")
+        .setData({
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: completedRouteCoordinates,
+          },
+        });
+    } else {
+      // Draw the Completed Route based on real-time data.
+      mapRef.current.getMap().addLayer({
+        id: "route-completed",
+        type: "line",
+        source: {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: completedRouteCoordinates,
+            },
+          },
+        },
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+          "line-round-limit": 10,
+        },
+        paint: {
+          "line-width": ["get", "width"],
+          "line-dasharray": [4, 4],
+          "line-color": "red",
+        },
+      });
+    }
+  };
 
   // Navigate the view to the selected flight.
   const navigateToFlight = (location) => {
@@ -730,8 +644,6 @@ function App() {
 
     setSelectedFlight(selectedFlightData);
 
-    console.log(selectedFlightData);
-
     await getRoute(
       { latitude: current_latitude, longitude: current_longitude },
       selectedFlightData.planned_dep_airport?.icao ?? "",
@@ -851,7 +763,7 @@ function App() {
     if (!checkStillActive()) {
       deselectFlightFunc();
     }
-  }, [checkStillActive, clusterData, drawRoute, deselectFlightFunc]);
+  }, [checkStillActive, clusterData, drawPlannedRoute, deselectFlightFunc]);
 
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
@@ -875,7 +787,7 @@ function App() {
   }, [
     handleGetFlightData,
     handleGetFIRsData,
-    drawRoute,
+    drawPlannedRoute,
     getUpdatedWeather,
     deselectFlightFunc,
     deselectAirportFunc,
@@ -944,25 +856,16 @@ function App() {
       isPopupOpen.remove();
     }
 
-    const yeah = JSON.parse(firResp.properties.members);
+    const parseMemberData = JSON.parse(firResp.properties.members);
 
-    const res: any = Object.values(yeah);
-
-    // const popupContent = res.map((member: any) => {
-    //   return (
-    //     <div>
-    //       <span>{member.callsign}</span>
-    //       <span>{member.name}</span>
-    //     </div>
-    //   );
-    // });
+    const memberData: any = Object.values(parseMemberData);
 
     let popupContent = "";
 
-    for (let i = 0; i < res.length; i++) {
-      popupContent += "<div>";
-      popupContent += `<span>${res[i].callsign}</span>`;
-      popupContent += `<span>${res[i].name}</span>`;
+    for (let i = 0; i < memberData.length; i++) {
+      popupContent += "<div class='mapboxgl-popup-content-interior'>";
+      popupContent += `<span>${memberData[i].name}</span>`;
+      popupContent += `<span>${memberData[i].callsign}</span>`;
       popupContent += "</div>";
     }
 
@@ -985,7 +888,7 @@ function App() {
       onViewportChange={(viewportObj: IViewport) => {
         setViewport({ ...viewportObj, height: "100vh", width: "100%" });
       }}
-      onHover={(e) => {
+      onClick={(e) => {
         const firResp = e.features?.find(
           (fir) => fir.layer.id.includes("FIR-") && fir.layer.type === "fill"
         );
@@ -1059,7 +962,7 @@ function App() {
                   setDisplayPopup(null);
                 }}
                 className={
-                  viewport.zoom < 9
+                  viewport.zoom < 12
                     ? `marker-image`
                     : `marker-image marker-image-zoom`
                 }

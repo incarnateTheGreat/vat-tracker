@@ -6,6 +6,14 @@
 @import "./menu";
 @import "./popover";
 
+.cheese {
+  display: flex;
+  justify-content: space-between;
+  min-width: 200px;
+  position: relative;
+  z-index: 10000;
+}
+
 // Default HTML
 body {
   font-family: "ProximaNova", sans-serif;
