@@ -250,14 +250,21 @@ function App() {
         let startLng = coordinates[coord - 1][0];
         let endLng = coordinates[coord][0];
 
-        // console.log({
-        //   "Lng current": startLng,
-        //   "Lng next": endLng,
-        // });
+        // if (startLng > 90 && endLng > -180) {
+        //   console.log({ startLng, endLng });
+
+        //   coordinates[coord][0] += 360;
+        // }
+
+        // startLng > 0 && endLng < 0 && startLng >= 180 && endLng <= 360
+        // startLng < 0 && endLng > 0 && startLng >= 180 && endLng <= 360
 
         if (startLng > 0 && endLng < 0) {
+          // console.log("ADD 360.", { startLng, endLng });
+
           coordinates[coord][0] += 360;
         } else if (startLng < 0 && endLng > 0) {
+          // console.log("SUBTRACT 360.", { startLng, endLng });
           coordinates[coord][0] -= 360;
         }
       }
@@ -272,7 +279,9 @@ function App() {
 
         // Assemble Coordinates.
         const coordinates = flightCoordinates.reduce((r, acc) => {
-          const { lon, lat } = acc;
+          const { lon, lat, ident } = acc;
+
+          console.log({ lon, lat, ident });
 
           r.push([lon, lat]);
 
@@ -393,6 +402,21 @@ function App() {
 
     // Handle the Anti-Merdian Line for the Completed Route.
     handleAntiMeridian(completedRouteCoordinates);
+
+    // In a hacky way to align the flight data with the latest drawn element of the Completed Route,
+    // apply the latest point to the line from the Cluster Data in an attempt to properly connect the plane with the data.
+    const alignedSelectedFlightData = clusterData.find((flightData) => {
+      return flightData.properties.callsign === selectedFlight?.callsign;
+    });
+
+    if (alignedSelectedFlightData) {
+      completedRouteCoordinates.pop();
+
+      completedRouteCoordinates.push([
+        alignedSelectedFlightData.properties.current_longitude,
+        alignedSelectedFlightData.properties.current_latitude,
+      ]);
+    }
 
     if (mapRef.current.getMap().getLayer("route-completed")) {
       mapRef.current
@@ -623,13 +647,6 @@ function App() {
     [drawWeather]
   );
 
-  // Update the Selected Flight data.
-  const getUpdatedSelectedFlight = async () => {
-    if (selectedFlight) {
-      selectFlight(selectedFlight.id, false, false);
-    }
-  };
-
   // Collect the extended flight data and then get the route.
   const selectFlight = async (
     flightID,
@@ -654,6 +671,19 @@ function App() {
       isInit
     );
   };
+
+  // Update the Selected Flight data.
+  const getUpdatedSelectedFlight = useCallback(() => {
+    console.log(
+      "Selected Flight:",
+      selectedFlight?.current_latitude,
+      selectedFlight?.current_longitude
+    );
+
+    if (selectedFlight) {
+      selectFlight(selectedFlight.id, false, false);
+    }
+  }, [selectedFlight]);
 
   // Deselect the Flight.
   const deselectFlightFunc = useCallback(() => {
@@ -943,6 +973,8 @@ function App() {
               key={`marker-${clusterObj.properties.callsign}`}
               latitude={latitude}
               longitude={longitude}
+              offsetLeft={-10}
+              offsetTop={-10}
             >
               <img
                 onClick={(e) => {

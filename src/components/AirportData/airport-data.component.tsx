@@ -281,17 +281,18 @@ export const AirportData = ({
     );
   };
 
-  const handleVisibility = (Visibility) => {
+  const handleVisibility = (Visibility, prevailingVis) => {
+    console.log(Visibility);
+
     let vis = "";
 
     if (Visibility) {
       vis = Visibility[0].decodeResult;
+    } else if (prevailingVis) {
+      vis = prevailingVis[0].decodeResult;
+    } else {
+      vis = "N/A";
     }
-    // else if (main[0]["Prevailing Visibility"]) {
-    //   vis = main[0]["Prevailing Visibility"][0].decodeResult;
-    // } else {
-    //   vis = "N/A";
-    // }
 
     return vis;
   };
@@ -399,10 +400,21 @@ export const AirportData = ({
             </div>
             <div>
               <div className="grid-container-airport-item-title">
+                Temperature
+              </div>
+              <div className="grid-container-airport-item-data">
+                {Temperature[0].decodeResult}
+              </div>
+            </div>
+            <div>
+              <div className="grid-container-airport-item-title">
                 Visibility
               </div>
               <div className="grid-container-airport-item-data">
-                {handleVisibility(Visibility)}
+                {handleVisibility(
+                  Visibility,
+                  weather.main[0]["Prevailing Visibility"]
+                )}
               </div>
             </div>
             <div>
