@@ -245,27 +245,19 @@ function App() {
 
   // In the event that the Aircraft is travelling across the Anti-Merdian (180 deg. Longitude), make sure the Route line continues drawing successfully.
   const handleAntiMeridian = (coordinates) => {
-    for (let coord = 0; coord < coordinates.length; coord++) {
+    const garry = [...coordinates];
+
+    for (let coord = 0; coord < garry.length; coord++) {
       if (coord > 0) {
-        let startLng = coordinates[coord - 1][0];
-        let endLng = coordinates[coord][0];
+        let lonPointA = garry[coord - 1][0];
+        let lonPointB = garry[coord][0];
 
-        // if (startLng > 90 && endLng > -180) {
-        //   console.log({ startLng, endLng });
-
-        //   coordinates[coord][0] += 360;
-        // }
-
-        // startLng > 0 && endLng < 0 && startLng >= 180 && endLng <= 360
-        // startLng < 0 && endLng > 0 && startLng >= 180 && endLng <= 360
-
-        if (startLng > 0 && endLng < 0) {
-          // console.log("ADD 360.", { startLng, endLng });
-
+        if (lonPointB - lonPointA > 180) {
+          coordinates[coord][0] += -360;
+        } else if (lonPointA - lonPointB > 180) {
           coordinates[coord][0] += 360;
-        } else if (startLng < 0 && endLng > 0) {
-          // console.log("SUBTRACT 360.", { startLng, endLng });
-          coordinates[coord][0] -= 360;
+        } else {
+          coordinates[coord][0] += 0;
         }
       }
     }
@@ -392,7 +384,7 @@ function App() {
 
   const drawCompletedRoute = (completed_route) => {
     // Assemble Completed Coordinates.
-    const completedRouteCoordinates = completed_route.reduce((r, acc) => {
+    const completedRouteCoordinates = completed_route?.reduce((r, acc) => {
       const { latitude, longitude } = acc;
 
       r.push([longitude, latitude]);
