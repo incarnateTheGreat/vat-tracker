@@ -1,26 +1,31 @@
 .autocomplete {
   font-size: $size-14;
   position: relative;
-  width: 155px;
+  width: 255px;
 
   input[type="text"] {
     height: 20px;
+    width: 248px;
   }
 
   &-results {
     background: $clr-white;
+    max-height: 500px;
+    overflow-y: scroll;
     position: absolute;
-    width: 100%;
+    width: inherit;
     z-index: 100;
   }
 
   &-result {
-    display: flex;
+    display: block;
     cursor: pointer;
     padding: 2px 5px;
+    font-weight: 600;
 
     &.--no-results {
       cursor: default;
+      font-weight: normal;
 
       &:hover {
         background: $clr-white;
@@ -51,6 +56,11 @@
     display: block;
     height: 10px;
     width: 10px;
+  }
+
+  mark {
+    background-color: transparent;
+    font-weight: normal;
   }
 
   @keyframes lds-dual-ring {

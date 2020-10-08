@@ -1,5 +1,10 @@
 import React, { createRef, useCallback, useEffect, useState } from "react";
 
+interface Item {
+  searchCompareValue: string;
+  searchReturnValue: string;
+}
+
 export const Autocomplete = (props) => {
   const {
     callback,
@@ -7,13 +12,14 @@ export const Autocomplete = (props) => {
     onSelect,
     placeholder = "Search",
     searchCompareValue = "",
+    searchReturnValue = "",
     selectionData = [],
     usesService = false,
   } = props;
 
   const [items, setItems] = useState(selectionData);
   const [selectedValue, setSelectedValue] = useState("");
-  const [sortedResult, setSortedResult] = useState<object[]>([]);
+  const [sortedResult, setSortedResult] = useState<Item[]>([]);
   const [noResults, setNoResults] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const inputRef = createRef<any>();
@@ -48,7 +54,19 @@ export const Autocomplete = (props) => {
 
               return getValue(searchCompareValue, item).match(regex);
             })
-            .map((obj) => getValue(searchCompareValue, obj));
+            .map((obj) => {
+              const compareValue = getValue(searchCompareValue, obj);
+
+              // If there is no specified Search Return Value, then return the Compare Value.
+              const returnValue = searchReturnValue
+                ? getValue(searchReturnValue, obj)
+                : compareValue;
+
+              return {
+                searchCompareValue: compareValue,
+                searchReturnValue: returnValue,
+              };
+            });
         } else {
           sortedResultLocal = itemData.filter((item: string) => {
             const regex = new RegExp(query, "gi");
@@ -97,7 +115,7 @@ export const Autocomplete = (props) => {
         }
       }
     } else if (e.key === "Enter") {
-      selectItem(e);
+      onSelect(e.target.dataset.item);
     }
   };
 
@@ -177,6 +195,14 @@ export const Autocomplete = (props) => {
     }
   };
 
+  // Listener that closes the Autocomplete results list when the user clicks away from it.
+  const clickListener = useCallback(() => {
+    if (sortedResult.length > 0) {
+      setSortedResult([]);
+      setSelectedValue("");
+    }
+  }, [sortedResult.length]);
+
   // Set/Update the Autocomplete data.
   useEffect(() => {
     setItems(selectionData);
@@ -187,7 +213,7 @@ export const Autocomplete = (props) => {
     if (!loading && usesService && inputRef.current.value.length > 0) {
       inputRef.current.focus();
     }
-  }, [loading, usesService]);
+  }, [inputRef, loading, usesService]);
 
   // Close the Autocopmlete results list when the user clicks anywhere outside of it.
   useEffect(() => {
@@ -197,15 +223,7 @@ export const Autocomplete = (props) => {
     return () => {
       document.removeEventListener("click", clickListener);
     };
-  }, [sortedResult]);
-
-  // Listener that closes the Autocomplete results list when the user clicks away from it.
-  const clickListener = () => {
-    if (sortedResult.length > 0) {
-      setSortedResult([]);
-      setSelectedValue("");
-    }
-  };
+  }, [sortedResult, clickListener]);
 
   return (
     <div className="autocomplete">
@@ -234,18 +252,27 @@ export const Autocomplete = (props) => {
         sortedResult && (
           <div className="autocomplete-results" ref={resultRef}>
             {sortedResult.length > 0 &&
-              sortedResult.map((item, i) => (
-                <span
-                  role="presentation"
-                  className="autocomplete-result"
-                  onKeyDown={navigateItems}
-                  onClick={() => onSelect(item)}
-                  key={i}
-                  tabIndex={i}
-                >
-                  {item}
-                </span>
-              ))}
+              sortedResult.map((item, i) => {
+                return (
+                  <span
+                    role="presentation"
+                    className="autocomplete-result"
+                    onKeyDown={navigateItems}
+                    onClick={() => onSelect(item.searchReturnValue)}
+                    key={i}
+                    tabIndex={i}
+                    data-item={item.searchReturnValue}
+                    dangerouslySetInnerHTML={{
+                      __html: item.searchCompareValue.replace(
+                        new RegExp(selectedValue, "gi"),
+                        function replace(match) {
+                          return `<mark>${match}</mark>`;
+                        }
+                      ),
+                    }}
+                  />
+                );
+              })}
             {noResults && (
               <span className="autocomplete-result --no-results">
                 Sorry. There are no results based on your search.

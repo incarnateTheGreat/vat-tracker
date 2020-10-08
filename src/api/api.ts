@@ -56,6 +56,12 @@ export const getFlights = async () => {
   );
 };
 
+export const getControllers = async () => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/controllers`).then(
+    (res) => res.data
+  );
+};
+
 // Get a list of Airports based on a substring
 export const getAirports = async (icao) => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/airports`, {

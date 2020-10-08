@@ -9,6 +9,7 @@ import ReactMapGL, {
 import mapboxgl from "mapbox-gl";
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
+import { format } from "date-fns";
 import { getTypeOfAircraft } from "./helpers/utils";
 
 // APIs
@@ -20,6 +21,7 @@ import {
   getTAF,
   getWeather,
   getFlights,
+  getControllers,
   getFlight,
   getFIRs,
 } from "./api/api";
@@ -29,6 +31,7 @@ import {
   IAirport,
   ICluster,
   IClusterDetails,
+  IControllers,
   IMetar,
   ITAF,
   IViewport,
@@ -61,10 +64,8 @@ function App() {
     zoom: 1,
   });
   const [flightData, setFlightData] = useState<IFlightVatStats[] | null>([]);
+  const [controllers, setControllers] = useState<IControllers[] | null>([]);
   const [onlineFirs, setOnlineFirs] = useState<IFirs[]>([]);
-  const [plannedDepartures, setPlannedDepartures] = useState<
-    IFlightVatStats[] | null
-  >([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
   const [icaoData, setIcaoData] = useState<object[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
@@ -85,10 +86,9 @@ function App() {
     number | null
   >(null);
   const [displayPopup, setDisplayPopup] = useState<ICluster | null>(null);
-  const [icaoInput, setIcaoInput] = useState<string>("");
-
   const mapRef = useRef<any>(null);
 
+  // Create the Cluster Data.
   const [superClusterData, setSuperClusterData] = useState({
     points: clusterData,
     bounds:
@@ -99,390 +99,23 @@ function App() {
     options: { radius: 200, maxZoom: 10 },
   });
 
+  // Assign the Flight and Cluster Data.
   const handleGetFlightData = useCallback(async () => {
     const data = await getFlights();
+    const controllers = await getControllers();
 
     if (typeof data === "object" && Object.keys(data).length > 0) {
       setFlightData(data.active_flights);
-      setPlannedDepartures(data.departures);
-      setClusterData(assembleClusterData(data.active_flights));
+      setControllers(controllers);
+      setClusterData(
+        assembleClusterData([...data.active_flights, ...controllers])
+      );
     } else {
       setTimeout(() => {
         setFlightData(null);
       }, 2000);
     }
   }, []);
-
-  // Get FIRs data
-  const handleGetFIRsData = useCallback(async () => {
-    const data = await getFIRs();
-
-    setOnlineFirs(data);
-
-    drawOnlineFIRs(data);
-  }, []);
-
-  // Click on a Cluster and zoom in to its active children.
-  const handleClusterClick = (
-    clusterObj: ICluster,
-    latitude: number,
-    longitude: number
-  ) => () => {
-    const expansionZoom = Math.min(
-      supercluster.getClusterExpansionZoom(clusterObj.properties.cluster_id),
-      20
-    );
-
-    setViewport({
-      ...viewport,
-      latitude,
-      longitude,
-      zoom: expansionZoom,
-      transitionInterpolator: new FlyToInterpolator({
-        speed: 1.5,
-      }),
-      transitionDuration: 500,
-    });
-  };
-
-  // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
-  const indicateFlightInCluster = (clusterObj) => {
-    const flightsInClusters = supercluster.getLeaves(
-      clusterObj.properties.cluster_id,
-      Infinity
-    );
-
-    return flightsInClusters.find((flight: ICluster) => {
-      return flight.properties.callsign === selectedFlight?.callsign;
-    });
-  };
-
-  // Handle the Airplane Icon type.
-  const handleIcon = (flightData: ICluster, isHover?: boolean) => {
-    // if (flightData.properties.isController) {
-    //   return getTypeOfAircraft("controller");
-    // }
-
-    const aircraftIcon = getTypeOfAircraftIcon(
-      flightData.properties.planned_aircraft
-    );
-
-    // If a Flight is selected, assign the Selected Airplane Icon to it.
-    if (
-      selectedFlight?.callsign === flightData.properties.callsign ||
-      isHover
-    ) {
-      return getTypeOfAircraftSelected(flightData.properties.planned_aircraft);
-    }
-
-    return aircraftIcon;
-  };
-
-  // Assign the Cluster Data, Bounds, Zoom, and other Options to Superclister.
-  const { clusters, supercluster } = useSupercluster(superClusterData);
-
-  // Check if Selected Flight is still selected.
-  const checkStillActive = useCallback(() => {
-    return (
-      flightData?.find(
-        (flight: IFlightVatStats) =>
-          selectedFlight?.callsign === flight.callsign
-      ) ?? null
-    );
-  }, [flightData, selectedFlight]);
-
-  // Get the Route data to draw on the screen.
-  const getRoute = async (
-    location,
-    planned_depairport,
-    planned_route,
-    completed_route,
-    planned_destairport,
-    transitionToFlightLoc,
-    isInit
-  ) => {
-    if (planned_depairport && planned_destairport && isInit) {
-      const decodedFlightRoute = await getDecodedFlightRoute(
-        planned_depairport,
-        planned_route,
-        planned_destairport
-      );
-
-      // Draw out the Polyline route, but only if the service successfully returns data.
-      if (decodedFlightRoute.encodedPolyline) {
-        const routeData = await fetchRoute(decodedFlightRoute.id);
-
-        drawPlannedRoute(
-          routeData.route?.nodes ?? null,
-          location,
-          transitionToFlightLoc
-        );
-      }
-    }
-
-    drawCompletedRoute(completed_route);
-  };
-
-  // Remove the Waypoints of the Selected Flight.
-  const removeRoute = () => {
-    const map = mapRef.current.getMap();
-
-    if (map.getLayer("route")) {
-      // Remove Route and its source.
-      map.removeLayer("route").removeSource("route");
-
-      // Remove the Waypoints and its source.
-      map.removeLayer("route-idents").removeSource("route-idents");
-
-      // Remove the Waypoints idents.
-      map.removeLayer("route-points").removeSource("route-points");
-    }
-
-    if (map.getLayer("route-completed")) {
-      map.removeLayer("route-completed").removeSource("route-completed");
-    }
-  };
-
-  // In the event that the Aircraft is travelling across the Anti-Merdian (180 deg. Longitude), make sure the Route line continues drawing successfully.
-  const handleAntiMeridian = (coordinates) => {
-    const garry = [...coordinates];
-
-    for (let coord = 0; coord < garry.length; coord++) {
-      if (coord > 0) {
-        let lonPointA = garry[coord - 1][0];
-        let lonPointB = garry[coord][0];
-
-        if (lonPointB - lonPointA > 180) {
-          coordinates[coord][0] += -360;
-        } else if (lonPointA - lonPointB > 180) {
-          coordinates[coord][0] += 360;
-        } else {
-          coordinates[coord][0] += 0;
-        }
-      }
-    }
-  };
-
-  // Draw the Waypoints of the Selected Flight.
-  const drawPlannedRoute = useCallback(
-    (flightCoordinates, location?, transitionToFlightLoc = false) => {
-      if (flightCoordinates && location) {
-        removeRoute();
-
-        // Assemble Coordinates.
-        const coordinates = flightCoordinates.reduce((r, acc) => {
-          const { lon, lat, ident } = acc;
-
-          console.log({ lon, lat, ident });
-
-          r.push([lon, lat]);
-
-          return r;
-        }, []);
-
-        // Handle the Anti-Merdian Line.
-        handleAntiMeridian(coordinates);
-
-        // Assemble GeoJSON Data.
-        const parseCoordsData = flightCoordinates.reduce((r, acc) => {
-          const { lon, lat, ident } = acc;
-
-          const obj = {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [lon, lat],
-            },
-            properties: {
-              title: ident,
-            },
-          };
-
-          r.push(obj);
-
-          return r;
-        }, []);
-
-        // Draw the Route Line.
-        mapRef.current.getMap().addLayer({
-          id: "route",
-          type: "line",
-          source: {
-            type: "geojson",
-            data: {
-              type: "Feature",
-              properties: {},
-              geometry: {
-                type: "LineString",
-                coordinates,
-              },
-            },
-          },
-          layout: {
-            "line-join": "round",
-            "line-cap": "round",
-            "line-round-limit": 10,
-          },
-          paint: {
-            "line-color": "#5b94c6",
-            "line-width": 3,
-            "line-opacity": 0.5,
-          },
-        });
-
-        // Draw the Route Waypoint Idents.
-        mapRef.current.getMap().addLayer({
-          id: "route-idents",
-          type: "symbol",
-          source: {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: parseCoordsData,
-            },
-          },
-          layout: {
-            // Get the title name from the source's "title" property.
-            "text-field": ["get", "title"],
-            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-            "text-offset": [0, 0.5],
-            "text-size": 12,
-            "text-anchor": "top",
-          },
-          paint: {
-            "text-color": "#202",
-            "text-halo-color": "#fff",
-            "text-halo-width": 50,
-          },
-        });
-
-        // Draw the Route Waypoint Circle Points.
-        mapRef.current.getMap().addLayer({
-          id: "route-points",
-          type: "circle",
-          source: {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: parseCoordsData,
-            },
-          },
-          paint: {
-            // Use get expression to get the radius property. Divided by 10 to be able to display it.
-            "circle-radius": ["/", ["get", "radius"], 110],
-            "circle-color": "#426d93",
-          },
-        });
-
-        if (transitionToFlightLoc) {
-          navigateToFlight(location);
-        }
-      }
-    },
-    []
-  );
-
-  const drawCompletedRoute = (completed_route) => {
-    // Assemble Completed Coordinates.
-    const completedRouteCoordinates = completed_route?.reduce((r, acc) => {
-      const { latitude, longitude } = acc;
-
-      r.push([longitude, latitude]);
-
-      return r;
-    }, []);
-
-    // Handle the Anti-Merdian Line for the Completed Route.
-    handleAntiMeridian(completedRouteCoordinates);
-
-    // In a hacky way to align the flight data with the latest drawn element of the Completed Route,
-    // apply the latest point to the line from the Cluster Data in an attempt to properly connect the plane with the data.
-    const alignedSelectedFlightData = clusterData.find((flightData) => {
-      return flightData.properties.callsign === selectedFlight?.callsign;
-    });
-
-    if (alignedSelectedFlightData) {
-      completedRouteCoordinates.pop();
-
-      completedRouteCoordinates.push([
-        alignedSelectedFlightData.properties.current_longitude,
-        alignedSelectedFlightData.properties.current_latitude,
-      ]);
-    }
-
-    if (mapRef.current.getMap().getLayer("route-completed")) {
-      mapRef.current
-        .getMap()
-        .getSource("route-completed")
-        .setData({
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: completedRouteCoordinates,
-          },
-        });
-    } else {
-      // Draw the Completed Route based on real-time data.
-      mapRef.current.getMap().addLayer({
-        id: "route-completed",
-        type: "line",
-        source: {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: completedRouteCoordinates,
-            },
-          },
-        },
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-          "line-round-limit": 10,
-        },
-        paint: {
-          "line-width": ["get", "width"],
-          "line-dasharray": [4, 4],
-          "line-color": "red",
-        },
-      });
-    }
-  };
-
-  // Navigate the view to the selected flight.
-  const navigateToFlight = (location) => {
-    const { longitude, latitude } = location;
-
-    setViewport({
-      ...viewport,
-      longitude,
-      latitude,
-      zoom: 5,
-      transitionDuration: 2000,
-      transitionInterpolator: new FlyToInterpolator(),
-      transitionEasing: d3.easeQuad,
-    });
-  };
-
-  // Navigate the view to the selected airport.
-  const navigateToAirport = (location) => {
-    const { longitude, latitude } = location;
-
-    const offset = 0.095;
-
-    setViewport({
-      ...viewport,
-      longitude: longitude + offset,
-      latitude,
-      zoom: 12,
-      transitionDuration: 2000,
-      transitionInterpolator: new FlyToInterpolator(),
-      transitionEasing: d3.easeQuad,
-    });
-  };
 
   // Draw the Online FIRs
   const drawOnlineFIRs = useCallback((onlineFirs) => {
@@ -590,12 +223,395 @@ function App() {
           map
             .removeLayer(`FIR-${firKey}-LINE`)
             .removeSource(`FIR-${firKey}-LINE`);
-
-          console.log(`Removed FIR-${firKey}`);
         }
       }
     }
   }, []);
+
+  // Get FIRs data
+  const handleGetFIRsData = useCallback(async () => {
+    const data = await getFIRs();
+
+    setOnlineFirs(data);
+
+    drawOnlineFIRs(data);
+  }, [drawOnlineFIRs]);
+
+  // Click on a Cluster and zoom in to its active children.
+  const handleClusterClick = (
+    clusterObj: ICluster,
+    latitude: number,
+    longitude: number
+  ) => () => {
+    const expansionZoom = Math.min(
+      supercluster.getClusterExpansionZoom(clusterObj.properties.cluster_id),
+      20
+    );
+
+    setViewport({
+      ...viewport,
+      latitude,
+      longitude,
+      zoom: expansionZoom,
+      transitionInterpolator: new FlyToInterpolator({
+        speed: 1.5,
+      }),
+      transitionDuration: 500,
+    });
+  };
+
+  // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
+  const indicateFlightInCluster = (clusterObj) => {
+    const flightsInClusters = supercluster.getLeaves(
+      clusterObj.properties.cluster_id,
+      Infinity
+    );
+
+    return flightsInClusters.find((flight: ICluster) => {
+      return flight.properties.callsign === selectedFlight?.callsign;
+    });
+  };
+
+  // Handle the Airplane Icon type.
+  const handleIcon = (flightData: ICluster, isHover?: boolean) => {
+    let aircraftIcon;
+
+    if (flightData.properties.isController) {
+      aircraftIcon = getTypeOfAircraftIcon("controller");
+    } else {
+      aircraftIcon = getTypeOfAircraftIcon(
+        flightData.properties.planned_aircraft
+      );
+    }
+
+    // If a Flight is selected, assign the Selected Airplane Icon to it.
+    if (
+      selectedFlight?.callsign === flightData.properties.callsign ||
+      (isHover && !flightData.properties.isController)
+    ) {
+      aircraftIcon = getTypeOfAircraftSelected(
+        flightData.properties.planned_aircraft
+      );
+    }
+
+    return aircraftIcon;
+  };
+
+  // Assign the Cluster Data, Bounds, Zoom, and other Options to Superclister.
+  const { clusters, supercluster } = useSupercluster(superClusterData);
+
+  // Check if Selected Flight is still selected.
+  const checkStillActive = useCallback(() => {
+    return (
+      flightData?.find(
+        (flight: IFlightVatStats) =>
+          selectedFlight?.callsign === flight.callsign
+      ) ?? null
+    );
+  }, [flightData, selectedFlight]);
+
+  // Get the Route data to draw on the screen.
+  const getRoute = async (
+    location,
+    planned_depairport,
+    planned_route,
+    completed_route,
+    planned_destairport,
+    transitionToFlightLoc,
+    isInit
+  ) => {
+    if (planned_depairport && planned_destairport && isInit) {
+      const decodedFlightRoute = await getDecodedFlightRoute(
+        planned_depairport,
+        planned_route,
+        planned_destairport
+      );
+
+      // Draw out the Polyline route, but only if the service successfully returns data.
+      if (decodedFlightRoute.encodedPolyline) {
+        const routeData = await fetchRoute(decodedFlightRoute.id);
+
+        drawPlannedRoute(
+          routeData.route?.nodes ?? null,
+          location,
+          transitionToFlightLoc
+        );
+      }
+    }
+
+    drawCompletedRoute(completed_route, location);
+  };
+
+  // Remove the Waypoints of the Selected Flight.
+  const removeRoute = () => {
+    const map = mapRef.current.getMap();
+
+    if (map.getLayer("route")) {
+      // Remove Route and its source.
+      map.removeLayer("route").removeSource("route");
+
+      // Remove the Waypoints and its source.
+      map.removeLayer("route-idents").removeSource("route-idents");
+
+      // Remove the Waypoints idents.
+      map.removeLayer("route-points").removeSource("route-points");
+    }
+
+    if (map.getLayer("route-completed")) {
+      map.removeLayer("route-completed").removeSource("route-completed");
+    }
+  };
+
+  // In the event that the Aircraft is travelling across the Anti-Merdian (180 deg. Longitude), make sure the Route line continues drawing successfully.
+  const handleAntiMeridian = (coordinates) => {
+    for (let coord = 0; coord < coordinates?.length; coord++) {
+      if (coord > 0) {
+        let lonPointA = coordinates[coord - 1][0];
+        let lonPointB = coordinates[coord][0];
+
+        if (lonPointB - lonPointA > 180) {
+          coordinates[coord][0] += -360;
+        } else if (lonPointA - lonPointB > 180) {
+          coordinates[coord][0] += 360;
+        } else {
+          coordinates[coord][0] += 0;
+        }
+      }
+    }
+  };
+
+  // Navigate the view to the selected flight.
+  const navigateToFlight = useCallback(
+    (location) => {
+      const { longitude, latitude } = location;
+
+      setViewport({
+        ...viewport,
+        longitude,
+        latitude,
+        zoom: 5,
+        transitionDuration: 2000,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionEasing: d3.easeQuad,
+      });
+    },
+    [viewport]
+  );
+
+  // Navigate the view to the selected Controller.
+  const navigateToController = useCallback(
+    (location) => {
+      const { longitude, latitude } = location;
+
+      setViewport({
+        ...viewport,
+        longitude,
+        latitude,
+        zoom: 5,
+        transitionDuration: 2000,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionEasing: d3.easeQuad,
+      });
+    },
+    [viewport]
+  );
+
+  // Draw the Waypoints of the Selected Flight.
+  const drawPlannedRoute = useCallback(
+    (flightCoordinates, location?, transitionToFlightLoc = false) => {
+      if (flightCoordinates && location) {
+        removeRoute();
+
+        // Assemble Coordinates.
+        const coordinates = flightCoordinates.reduce((r, acc) => {
+          const { lon, lat } = acc;
+
+          r.push([lon, lat]);
+
+          return r;
+        }, []);
+
+        // Handle the Anti-Merdian Line.
+        handleAntiMeridian(coordinates);
+
+        // Assemble GeoJSON Data.
+        const parseCoordsData = flightCoordinates.reduce((r, acc) => {
+          const { lon, lat, ident } = acc;
+
+          const obj = {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: [lon, lat],
+            },
+            properties: {
+              title: ident,
+            },
+          };
+
+          r.push(obj);
+
+          return r;
+        }, []);
+
+        // Draw the Route Line.
+        mapRef.current.getMap().addLayer({
+          id: "route",
+          type: "line",
+          source: {
+            type: "geojson",
+            data: {
+              type: "Feature",
+              properties: {},
+              geometry: {
+                type: "LineString",
+                coordinates,
+              },
+            },
+          },
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+            "line-round-limit": 10,
+          },
+          paint: {
+            "line-color": "#5b94c6",
+            "line-width": 3,
+            "line-opacity": 0.5,
+          },
+        });
+
+        // Draw the Route Waypoint Idents.
+        mapRef.current.getMap().addLayer({
+          id: "route-idents",
+          type: "symbol",
+          source: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: parseCoordsData,
+            },
+          },
+          layout: {
+            // Get the title name from the source's "title" property.
+            "text-field": ["get", "title"],
+            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            "text-offset": [0, 0.5],
+            "text-size": 12,
+            "text-anchor": "top",
+          },
+          paint: {
+            "text-color": "#202",
+            "text-halo-color": "#fff",
+            "text-halo-width": 50,
+          },
+        });
+
+        // Draw the Route Waypoint Circle Points.
+        mapRef.current.getMap().addLayer({
+          id: "route-points",
+          type: "circle",
+          source: {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: parseCoordsData,
+            },
+          },
+          paint: {
+            // Use get expression to get the radius property. Divided by 10 to be able to display it.
+            "circle-radius": ["/", ["get", "radius"], 110],
+            "circle-color": "#426d93",
+          },
+        });
+
+        if (transitionToFlightLoc) {
+          navigateToFlight(location);
+        }
+      }
+    },
+    [navigateToFlight]
+  );
+
+  const drawCompletedRoute = (completed_route, location) => {
+    // Assemble Completed Coordinates.
+    const completedRouteCoordinates = completed_route?.reduce((r, acc) => {
+      const { latitude, longitude } = acc;
+
+      r.push([longitude, latitude]);
+
+      return r;
+    }, []);
+
+    // Handle the Anti-Merdian Line for the Completed Route.
+    handleAntiMeridian(completedRouteCoordinates);
+
+    // In a hacky way to align the flight data with the latest drawn element of the Completed Route,
+    // apply the latest point to the line from the Cluster Data in an attempt to properly connect the plane with the data.
+    if (location) {
+      completedRouteCoordinates.pop();
+
+      completedRouteCoordinates.push([location.longitude, location.latitude]);
+    }
+
+    if (mapRef.current.getMap().getLayer("route-completed")) {
+      mapRef.current
+        .getMap()
+        .getSource("route-completed")
+        .setData({
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: completedRouteCoordinates,
+          },
+        });
+    } else {
+      // Draw the Completed Route based on real-time data.
+      mapRef.current.getMap().addLayer({
+        id: "route-completed",
+        type: "line",
+        source: {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: completedRouteCoordinates,
+            },
+          },
+        },
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+          "line-round-limit": 10,
+        },
+        paint: {
+          "line-width": ["get", "width"],
+          "line-dasharray": [4, 4],
+          "line-color": "red",
+        },
+      });
+    }
+  };
+
+  // Navigate the view to the selected airport.
+  const navigateToAirport = (location) => {
+    const { longitude, latitude } = location;
+
+    const offset = 0.095;
+
+    setViewport({
+      ...viewport,
+      longitude: longitude + offset,
+      latitude,
+      zoom: 12,
+      transitionDuration: 2000,
+      transitionInterpolator: new FlyToInterpolator(),
+      transitionEasing: d3.easeQuad,
+    });
+  };
 
   // Draw the Weather on the map.
   const drawWeather = useCallback(
@@ -643,18 +659,27 @@ function App() {
   const selectFlight = async (
     flightID,
     transitionToFlightLoc: boolean = false,
-    isInit: boolean = true
+    isInit: boolean = true,
+    location?
   ) => {
     const selectedFlightData: IFlightVatStatsDetails = await getFlight(
       flightID
     );
 
-    const { current_latitude, current_longitude } = selectedFlightData;
+    // Assign Location data for Transition to Flight Location if there is no passed Location parameter.
+    if (!location) {
+      const {
+        current_latitude: latitude,
+        current_longitude: longitude,
+      } = selectedFlightData;
+
+      location = { latitude, longitude };
+    }
 
     setSelectedFlight(selectedFlightData);
 
     await getRoute(
-      { latitude: current_latitude, longitude: current_longitude },
+      location,
       selectedFlightData.planned_dep_airport?.icao ?? "",
       selectedFlightData.planned_route,
       selectedFlightData.data_points,
@@ -666,16 +691,32 @@ function App() {
 
   // Update the Selected Flight data.
   const getUpdatedSelectedFlight = useCallback(() => {
-    console.log(
-      "Selected Flight:",
-      selectedFlight?.current_latitude,
-      selectedFlight?.current_longitude
-    );
-
     if (selectedFlight) {
-      selectFlight(selectedFlight.id, false, false);
+      const getActiveFlightData: ICluster = clusters.find((flightData) => {
+        return flightData.properties.callsign === selectedFlight.callsign;
+      });
+
+      let longitude, latitude;
+
+      // If, for some reason, this data doesn't return successfully, account for it with an undefined return.
+      if (getActiveFlightData) {
+        longitude = getActiveFlightData.geometry.coordinates[0];
+        latitude = getActiveFlightData.geometry.coordinates[1];
+      }
+
+      selectFlight(
+        selectedFlight.id,
+        false,
+        false,
+        longitude
+          ? {
+              latitude,
+              longitude,
+            }
+          : undefined
+      );
     }
-  }, [selectedFlight]);
+  }, [clusters, selectedFlight]);
 
   // Deselect the Flight.
   const deselectFlightFunc = useCallback(() => {
@@ -693,7 +734,8 @@ function App() {
   // Select the Flight.
   const selectFlightFunc = async (
     flightID,
-    transitionToFlightLoc: boolean = false
+    transitionToFlightLoc: boolean = false,
+    location?
   ) => {
     setLoading(true);
     setToggleNavigationMenu(false);
@@ -707,13 +749,33 @@ function App() {
       setDisplaySelectedAirport(false);
     }
 
-    await selectFlight(flightID, transitionToFlightLoc);
+    await selectFlight(flightID, transitionToFlightLoc, true, location);
 
     setLoading(false);
+    setDisplaySelectedFlight(true);
+  };
 
-    if (!transitionToFlightLoc) {
-      setDisplaySelectedFlight(true);
+  // Select the Controller
+  const selectControllerFunc = async (controllerObj) => {
+    setLoading(true);
+    setToggleNavigationMenu(false);
+
+    // Disable the Selected Flight to clear the screen and allow for the new selection to load togerther.
+    if (selectedFlight) {
+      setSelectedFlight(null);
     }
+
+    if (selectedAirport) {
+      setDisplaySelectedAirport(false);
+    }
+
+    await navigateToController({
+      longitude: controllerObj.properties.longitude,
+      latitude: controllerObj.properties.latitude,
+    });
+
+    setLoading(false);
+    setDisplaySelectedFlight(true);
   };
 
   // Collect selected Airport data.
@@ -806,52 +868,71 @@ function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, [
-    handleGetFlightData,
-    handleGetFIRsData,
-    drawPlannedRoute,
-    getUpdatedWeather,
-    deselectFlightFunc,
-    deselectAirportFunc,
-  ]);
+  }, []);
 
   const displayPopupDataView = () => {
     if (displayPopup) {
-      const {
-        callsign,
-        current_altitude,
-        current_latitude,
-        current_longitude,
-        real_name,
-        planned_aircraft,
-        planned_dep_airport__icao,
-        planned_dest_airport__icao,
-      } = displayPopup.properties;
+      let popup;
 
-      // if (isController) {
-      //   return (
-      //     <Popup longitude={longitude} latitude={latitude}>
-      //       <div>
-      //         <h3>{callsign}</h3>
-      //         <h5>{name}</h5>
-      //       </div>
-      //     </Popup>
-      //   );
-      // }
+      if (displayPopup.properties.isController) {
+        const {
+          combined,
+          frequency,
+          latitude,
+          longitude,
+          server,
+          time_logon,
+        } = displayPopup.properties;
 
-      return (
-        <Popup longitude={current_longitude} latitude={current_latitude}>
-          <h3>{callsign}</h3>
-          <h4>{real_name}</h4>
-          <div className="mapboxgl-popup-route">
-            <span>{planned_dep_airport__icao}</span>
-            <span className="mapboxgl-popup-route-arrow">&#10132;</span>
-            <span>{planned_dest_airport__icao}</span>
-          </div>
-          <div>{getTypeOfAircraft(planned_aircraft)}</div>
-          <div>{current_altitude} FT.</div>
-        </Popup>
-      );
+        popup = (
+          <Popup
+            anchor="right"
+            closeButton={false}
+            longitude={longitude}
+            latitude={latitude}
+            offsetLeft={-10}
+          >
+            <h3>{combined}</h3>
+            <h4>{frequency}</h4>
+            <h4>{format(new Date(time_logon), "MMM. dd, yyyy H.mm")}</h4>
+          </Popup>
+        );
+      } else {
+        const {
+          callsign,
+          current_altitude,
+          current_latitude,
+          current_longitude,
+          current_ground_speed,
+          real_name,
+          planned_aircraft,
+          planned_dep_airport__icao,
+          planned_dest_airport__icao,
+        } = displayPopup.properties;
+
+        popup = (
+          <Popup
+            anchor="right"
+            closeButton={false}
+            longitude={current_longitude}
+            latitude={current_latitude}
+            offsetLeft={-10}
+          >
+            <h3>{callsign}</h3>
+            <h4>{real_name}</h4>
+            <div className="mapboxgl-popup-route">
+              <span>{planned_dep_airport__icao}</span>
+              <span className="mapboxgl-popup-route-arrow">&#10132;</span>
+              <span>{planned_dest_airport__icao}</span>
+            </div>
+            <div>{getTypeOfAircraft(planned_aircraft)}</div>
+            <div>{current_altitude} ft.</div>
+            <div>{current_ground_speed} kts.</div>
+          </Popup>
+        );
+      }
+
+      return popup;
     }
 
     return null;
@@ -891,9 +972,7 @@ function App() {
       popupContent += "</div>";
     }
 
-    console.log(popupContent);
-
-    new mapboxgl.Popup()
+    new mapboxgl.Popup({ closeOnClick: false })
       .setLngLat(lngLat)
       .setHTML(popupContent)
       .addTo(mapRef.current.getMap());
@@ -902,8 +981,12 @@ function App() {
   return (
     <ReactMapGL
       {...viewport}
-      doubleClickZoom={!displaySelectedAirport}
-      scrollZoom={!displaySelectedAirport}
+      doubleClickZoom={
+        displaySelectedAirport || toggleNavigationMenu ? false : true
+      }
+      scrollZoom={displaySelectedAirport || toggleNavigationMenu ? false : true}
+      dragRotate={false}
+      touchRotate={false}
       keyboard={toggleNavigationMenu ? false : true}
       mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN}
       mapStyle="mapbox://styles/incarnate/ckc5i9a5s02w21ipgctm9js0w"
@@ -972,7 +1055,17 @@ function App() {
                 onClick={(e) => {
                   e.preventDefault();
 
-                  selectFlightFunc(clusterObj.properties.id);
+                  console.log(clusterObj.properties.isController);
+
+                  if (clusterObj.properties.isController) {
+                    selectControllerFunc(clusterObj);
+                  } else {
+                    selectFlightFunc(clusterObj.properties.id, false, {
+                      latitude,
+                      longitude,
+                    });
+                  }
+
                   setDisplaySelectedFlight(false);
                 }}
                 onMouseOver={(e) => {
@@ -1025,7 +1118,6 @@ function App() {
         setToggleNavigationMenu={setToggleNavigationMenu}
         selectFlightFunc={selectFlightFunc}
         setDisplaySelectedFlight={setDisplaySelectedFlight}
-        setIcaoInput={setIcaoInput}
         setIcaoData={setIcaoData}
         selectAirportFunc={selectAirportFunc}
         icaoData={icaoData}
@@ -1037,6 +1129,7 @@ function App() {
           displaySelectedFlight={displaySelectedFlight}
           checkStillActive={checkStillActive}
           deselectFlightFunc={deselectFlightFunc}
+          selectAirportFunc={selectAirportFunc}
         />
       )}
 

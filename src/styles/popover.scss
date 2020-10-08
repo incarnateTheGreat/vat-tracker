@@ -2,14 +2,23 @@
   font-size: $size-14;
   z-index: 1;
 
-  &-content-interior {
-    display: flex;
-    justify-content: space-between;
-    min-width: 200px;
+  &-content {
+    min-width: 250px;
 
-    span {
-      &:first-child {
-        font-weight: bold;
+    &-interior {
+      display: flex;
+      justify-content: space-between;
+
+      span {
+        &:first-child {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        &:last-child {
+          font-weight: bold;
+        }
       }
     }
   }

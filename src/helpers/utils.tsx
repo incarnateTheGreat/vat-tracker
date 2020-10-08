@@ -1,5 +1,3 @@
-import { IFlightVatStats } from "../declaration/app";
-
 // Select and Assign the correct (or approximate) Aircraft Type for the Marker.
 export const getTypeOfAircraftIcon = (aircraft) => {
   if (aircraft.includes("B74")) {
@@ -116,16 +114,25 @@ export const getTypeOfAircraftSelected = (aircraft) => {
 
 // In order to display the Flights with Clustering, objects need to be created to assist with using Supercluster.
 export const assembleClusterData = (data) => {
-  return data.map((flight: IFlightVatStats) => {
+  return data.map((flight) => {
+    const name = flight.real_name ? flight.real_name : flight.realname;
+    const current_longitude = flight.current_longitude
+      ? flight.current_longitude
+      : flight.longitude;
+    const current_latitude = flight.current_latitude
+      ? flight.current_latitude
+      : flight.latitude;
+
     return {
       type: "Feature",
       properties: {
         cluster: false,
+        combined: `${flight.callsign} (${name})`,
         ...flight,
       },
       geometry: {
         type: "Point",
-        coordinates: [flight.current_longitude, flight.current_latitude],
+        coordinates: [current_longitude, current_latitude],
       },
     };
   });
@@ -142,6 +149,8 @@ export const drawWeatherLayer = (map, timestamp) => {
         `https://tilecache.rainviewer.com/v2/radar/${timestamp}/256/{z}/{x}/{y}/2/1_1.png`,
       ],
       tileSize: 256,
+      opacity: 0.001,
+      zIndex: timestamp,
     },
     minZoom: 0,
     maxZoom: 12,

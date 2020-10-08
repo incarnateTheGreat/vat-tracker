@@ -10,7 +10,6 @@ export const NavigationMenu = ({
   selectFlightFunc,
   setDisplaySelectedFlight,
   selectAirportFunc,
-  setIcaoInput,
   setIcaoData,
   icaoData,
 }) => {
@@ -45,14 +44,13 @@ export const NavigationMenu = ({
               }
             }}
             placeholder="Search for Callsign"
-            searchCompareValue="properties.callsign"
+            searchCompareValue="properties.combined"
+            searchReturnValue="properties.callsign"
             selectionData={clusterData}
           />
 
           <Autocomplete
             callback={async (value) => {
-              setIcaoInput(value);
-
               const icaoRes = await getAirports(value);
 
               setIcaoData(icaoRes.results ?? []);

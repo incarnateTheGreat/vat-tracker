@@ -6,6 +6,7 @@ export const FlightData = ({
   displaySelectedFlight,
   checkStillActive,
   deselectFlightFunc,
+  selectAirportFunc,
 }) => {
   const isStillSelected = checkStillActive();
 
@@ -96,11 +97,17 @@ export const FlightData = ({
           </div>
           <div className="grid-container">
             <div className="grid-container-item grid-container-item-icao">
-              <div>{planned_dep_airport__icao}</div>
+              <div onClick={() => selectAirportFunc(planned_dep_airport__icao)}>
+                {planned_dep_airport__icao}
+              </div>
               <div>{planned_dep_airport__name}</div>
             </div>
             <div className="grid-container-item grid-container-item-icao">
-              <div>{planned_dest_airport__icao}</div>
+              <div
+                onClick={() => selectAirportFunc(planned_dest_airport__icao)}
+              >
+                {planned_dest_airport__icao}
+              </div>
               <img
                 className="grid-container-item-icao-plane-to"
                 src="../images/airplane-icon.png"

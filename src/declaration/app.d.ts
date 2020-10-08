@@ -11,7 +11,48 @@ export interface IViewport {
 }
 
 export interface IControllers {
-  controllers: object[];
+  altitude: number;
+  atis_message: string;
+  callsign: string;
+  cid: string;
+  clienttype: string;
+  combined: string;
+  facilitytype: number;
+  frequency: string;
+  groundspeed: number;
+  heading: number;
+  latitude: number;
+  longitude: number;
+  planned_actdeptime: any;
+  planned_aircraft: any;
+  planned_altairport: any;
+  planned_altitude: any;
+  planned_depairport: any;
+  planned_depairport_lat: number;
+  planned_depairport_lon: number;
+  planned_deptime: any;
+  planned_destairport: any;
+  planned_destairport_lat: number;
+  planned_destairport_lon: number;
+  planned_flighttype: any;
+  planned_hrsenroute: any;
+  planned_hrsfuel: any;
+  planned_minenroute: any;
+  planned_minfuel: any;
+  planned_remarks: any;
+  planned_revision: any;
+  planned_route: any;
+  planned_tascruise: any;
+  protrevision: number;
+  qnh_i_hg: number;
+  qnh_mb: number;
+  rating: number;
+  realname: string;
+  server: string;
+  time_last_atis_received: string;
+  time_logon: string;
+  transponder: number;
+  visualrange: number;
 }
 
 export interface IFlights {
@@ -238,7 +279,7 @@ export interface IFlightVatStatsDetails {
 
 export interface ICluster {
   geometry: {
-    coordinates: any[];
+    coordinates: number[];
     type: string;
   };
   properties: IClusterProperties;
@@ -249,10 +290,12 @@ export interface IClusterDetails extends IFlightVatStatsDetails {}
 
 export interface IClusterProperties
   extends IFlightVatStats,
-    IFlightVatStatsDetails {
+    IFlightVatStatsDetails,
+    IControllers {
   cluster: boolean;
   cluster_id: number;
   isCluster: boolean;
+  isController: boolean;
   pointCount?: number;
   point_count: number;
 }

@@ -282,8 +282,6 @@ export const AirportData = ({
   };
 
   const handleVisibility = (Visibility, prevailingVis) => {
-    console.log(Visibility);
-
     let vis = "";
 
     if (Visibility) {
