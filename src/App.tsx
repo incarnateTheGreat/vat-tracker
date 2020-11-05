@@ -865,6 +865,14 @@ function App() {
     getUpdatedSelectedFlight();
   }, 15000);
 
+  // Get the total number of connections.
+  const getTotalConnections = () => {
+    const controllerConnections = controllers?.length ?? 0;
+    const flightConnections = flightData?.length ?? 0;
+
+    return controllerConnections + flightConnections;
+  };
+
   // If an Airport is selected, continue to update it with its latest information.
   useEffect(() => {
     if (selectedAirport) {
@@ -1172,6 +1180,7 @@ function App() {
         setIcaoData={setIcaoData}
         selectAirportFunc={selectAirportFunc}
         icaoData={icaoData}
+        totalConnections={getTotalConnections()}
       />
 
       {selectedFlight && (

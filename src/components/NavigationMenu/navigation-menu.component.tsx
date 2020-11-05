@@ -13,6 +13,7 @@ export const NavigationMenu = ({
   selectAirportFunc,
   setIcaoData,
   icaoData,
+  totalConnections,
 }) => {
   if (toggleNavigationMenu) {
     return (
@@ -75,6 +76,7 @@ export const NavigationMenu = ({
             usesService={true}
           />
         </nav>
+        <h5>Total Connections: {totalConnections} </h5>
       </div>
     );
   }

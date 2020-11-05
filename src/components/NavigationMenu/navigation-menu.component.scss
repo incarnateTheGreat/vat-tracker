@@ -9,6 +9,10 @@
   transition: 0.2s ease-in-out;
   z-index: 2;
 
+  h5 {
+    color: $clr-white;
+  }
+
   &-enabled {
     margin-left: 0;
   }
