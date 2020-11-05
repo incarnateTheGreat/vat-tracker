@@ -2,7 +2,7 @@ import axios from "axios";
 
 // VATSIM APIs
 export const getVatsimData = async (isInit = false) => {
-  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/vatsim-data/`, {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/vatsimJson/`, {
     params: {
       isInit,
     },
@@ -50,17 +50,17 @@ export const getMETAR = async (icao) => {
 };
 
 // Experimental VatStats
-export const getFlights = async () => {
-  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flights`).then(
-    (res) => res.data
-  );
-};
+// export const getFlights = async () => {
+//   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flights`).then(
+//     (res) => res.data
+//   );
+// };
 
-export const getControllers = async () => {
-  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/controllers`).then(
-    (res) => res.data
-  );
-};
+// export const getControllers = async () => {
+//   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/controllers`).then(
+//     (res) => res.data
+//   );
+// };
 
 // Get a list of Airports based on a substring
 export const getAirports = async (icao) => {
@@ -92,6 +92,14 @@ export const getFlight = async (id) => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flight`, {
     params: {
       id,
+    },
+  }).then((res) => res.data);
+};
+
+export const getFlightVatStats = async (callsign) => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flightVatStats`, {
+    params: {
+      callsign,
     },
   }).then((res) => res.data);
 };

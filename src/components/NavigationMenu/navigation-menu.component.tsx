@@ -1,5 +1,6 @@
 import React from "react";
 import { getAirports } from "../../api/api";
+import { assembleAiportData } from "../../helpers/utils";
 import { ICluster } from "../../declaration/app";
 import { Autocomplete } from "../Autocomplete/autocomplete.component";
 
@@ -38,7 +39,7 @@ export const NavigationMenu = ({
               );
 
               if (foundFlight) {
-                selectFlightFunc(foundFlight.properties.id, true);
+                selectFlightFunc(foundFlight.properties.callsign, true);
                 setDisplaySelectedFlight(false);
                 setToggleNavigationMenu(false);
               }
@@ -53,9 +54,11 @@ export const NavigationMenu = ({
             callback={async (value) => {
               const icaoRes = await getAirports(value);
 
-              setIcaoData(icaoRes.results ?? []);
+              const icaos = assembleAiportData(icaoRes.results ?? []);
 
-              return icaoRes.results ?? [];
+              setIcaoData(icaos);
+
+              return icaos;
             }}
             onSelect={async (callsign) => {
               const icaoRes =
@@ -66,7 +69,8 @@ export const NavigationMenu = ({
               }
             }}
             placeholder="Search for ICAO"
-            searchCompareValue="icao"
+            searchCompareValue="combined"
+            searchReturnValue="icao"
             selectionData={icaoData}
             usesService={true}
           />

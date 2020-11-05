@@ -28,7 +28,8 @@
           color: $clr-black;
 
           &-departures,
-          &-arrivals {
+          &-arrivals,
+          &-controllers {
             display: grid;
             font-size: $size-14;
             grid-template-columns: repeat(4, 1fr);

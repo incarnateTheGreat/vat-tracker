@@ -6,18 +6,21 @@
     min-width: 250px;
 
     &-interior {
-      display: flex;
-      justify-content: space-between;
+      padding: 5px 0 0;
+
+      div {
+        display: flex;
+        justify-content: space-between;
+      }
 
       span {
+        font-weight: bold;
+
         &:first-child {
           display: block;
+          font-weight: normal;
           overflow: hidden;
           text-overflow: ellipsis;
-        }
-
-        &:last-child {
-          font-weight: bold;
         }
       }
     }

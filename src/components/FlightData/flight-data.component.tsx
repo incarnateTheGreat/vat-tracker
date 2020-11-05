@@ -3,8 +3,8 @@ import { getTypeOfAircraft } from "../../helpers/utils";
 
 export const FlightData = ({
   selectedFlight,
-  displaySelectedFlight,
   checkStillActive,
+  displaySelectedFlight,
   deselectFlightFunc,
   selectAirportFunc,
 }) => {
@@ -20,11 +20,12 @@ export const FlightData = ({
       current_ground_speed,
       current_heading,
       planned_aircraft,
-      planned_dep_airport__icao,
-      planned_dep_airport__name,
-      planned_dest_airport__icao,
-      planned_dest_airport__name,
-    } = isStillSelected;
+      planned_dep_airport: { icao: dep_airport_icao, name: dep_airport_name },
+      planned_dest_airport: {
+        icao: dest_airport_icao,
+        name: dest_airport_name,
+      },
+    } = selectedFlight;
 
     const getDistanceInKM = (setPoint, destPoint) => {
       const { lat1, lon1 } = setPoint;
@@ -97,23 +98,21 @@ export const FlightData = ({
           </div>
           <div className="grid-container">
             <div className="grid-container-item grid-container-item-icao">
-              <div onClick={() => selectAirportFunc(planned_dep_airport__icao)}>
-                {planned_dep_airport__icao}
+              <div onClick={() => selectAirportFunc(dep_airport_icao)}>
+                {dep_airport_icao}
               </div>
-              <div>{planned_dep_airport__name}</div>
+              <div>{dep_airport_name}</div>
             </div>
             <div className="grid-container-item grid-container-item-icao">
-              <div
-                onClick={() => selectAirportFunc(planned_dest_airport__icao)}
-              >
-                {planned_dest_airport__icao}
+              <div onClick={() => selectAirportFunc(dest_airport_icao)}>
+                {dest_airport_icao}
               </div>
               <img
                 className="grid-container-item-icao-plane-to"
                 src="../images/airplane-icon.png"
                 alt="To"
               />
-              <div>{planned_dest_airport__name}</div>
+              <div>{dest_airport_name}</div>
             </div>
             <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
               <div>Equipment</div>

@@ -50,9 +50,11 @@ export const Autocomplete = (props) => {
         if (typeof itemData[0] === "object") {
           sortedResultLocal = itemData
             .filter((item: object) => {
-              const regex = new RegExp(query, "gi");
-
-              return getValue(searchCompareValue, item).match(regex);
+              return (
+                getValue(searchCompareValue, item)
+                  .toLowerCase()
+                  .indexOf(query.toLowerCase()) !== -1
+              );
             })
             .map((obj) => {
               const compareValue = getValue(searchCompareValue, obj);
@@ -203,6 +205,21 @@ export const Autocomplete = (props) => {
     }
   }, [sortedResult.length]);
 
+  // Display the searched and non-searched content in the Autocomplete return data.
+  const handleInnerHTML = (item) => {
+    // In order to search for parenthesis, the string needs to escape the open and close parenthesis characters. If not, the RegExp function will break.
+    const selectedValueEscaped = selectedValue
+      .replace(/(?=[(])+/gim, "\\")
+      .replace(/(?=[)])+/gim, "\\");
+
+    return item.searchCompareValue.replace(
+      new RegExp(selectedValueEscaped, "gi"),
+      function replace(match) {
+        return `<mark>${match}</mark>`;
+      }
+    );
+  };
+
   // Set/Update the Autocomplete data.
   useEffect(() => {
     setItems(selectionData);
@@ -229,7 +246,7 @@ export const Autocomplete = (props) => {
     <div className="autocomplete">
       <input
         onChange={(event) => {
-          const query = event.target.value.toUpperCase();
+          const query = event.target.value;
 
           setSelectedValue(query);
 
@@ -249,30 +266,24 @@ export const Autocomplete = (props) => {
       {loading ? (
         <span className="lds-dual-ring"></span>
       ) : (
-        sortedResult && (
+        sortedResult.length > 0 && (
           <div className="autocomplete-results" ref={resultRef}>
-            {sortedResult.length > 0 &&
-              sortedResult.map((item, i) => {
-                return (
-                  <span
-                    role="presentation"
-                    className="autocomplete-result"
-                    onKeyDown={navigateItems}
-                    onClick={() => onSelect(item.searchReturnValue)}
-                    key={i}
-                    tabIndex={i}
-                    data-item={item.searchReturnValue}
-                    dangerouslySetInnerHTML={{
-                      __html: item.searchCompareValue.replace(
-                        new RegExp(selectedValue, "gi"),
-                        function replace(match) {
-                          return `<mark>${match}</mark>`;
-                        }
-                      ),
-                    }}
-                  />
-                );
-              })}
+            {sortedResult.map((item, i) => {
+              return (
+                <span
+                  role="presentation"
+                  className="autocomplete-result"
+                  onKeyDown={navigateItems}
+                  onClick={() => onSelect(item.searchReturnValue)}
+                  key={i}
+                  tabIndex={i}
+                  data-item={item.searchReturnValue}
+                  dangerouslySetInnerHTML={{
+                    __html: handleInnerHTML(item),
+                  }}
+                />
+              );
+            })}
             {noResults && (
               <span className="autocomplete-result --no-results">
                 Sorry. There are no results based on your search.

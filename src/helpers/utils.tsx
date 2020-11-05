@@ -1,5 +1,5 @@
 // Select and Assign the correct (or approximate) Aircraft Type for the Marker.
-export const getTypeOfAircraftIcon = (aircraft) => {
+export const getTypeOfAircraftIcon = (aircraft = "") => {
   if (aircraft.includes("B74")) {
     return "/images/airplane-747-icon.png";
   } else if (
@@ -134,6 +134,45 @@ export const assembleClusterData = (data) => {
         type: "Point",
         coordinates: [current_longitude, current_latitude],
       },
+    };
+  });
+};
+
+export const assembleClusterDataTest = (data) => {
+  return data.map((flight) => {
+    const name = flight.realname;
+    const current_longitude = flight.longitude;
+    const current_latitude = flight.latitude;
+
+    return {
+      type: "Feature",
+      properties: {
+        ...flight,
+        current_altitude: flight.altitude,
+        current_heading: flight.heading,
+        current_latitude: flight.latitude,
+        current_longitude: flight.longitude,
+        current_ground_speed: flight.groundspeed,
+        real_name: flight.realname,
+        planned_aircraft: flight.planned_aircraft ?? "N/A",
+        planned_dep_airport__icao: flight.planned_depairport,
+        planned_dest_airport__icao: flight.planned_destairport,
+        cluster: false,
+        combined: `${flight.callsign} (${name})`,
+      },
+      geometry: {
+        type: "Point",
+        coordinates: [current_longitude, current_latitude],
+      },
+    };
+  });
+};
+
+export const assembleAiportData = (data) => {
+  return data.map((airport) => {
+    return {
+      ...airport,
+      combined: `${airport.icao} (${airport.municipality})`,
     };
   });
 };

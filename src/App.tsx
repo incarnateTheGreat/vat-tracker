@@ -6,7 +6,6 @@ import ReactMapGL, {
   NavigationControl,
   Popup,
 } from "react-map-gl";
-import mapboxgl from "mapbox-gl";
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
 import { format } from "date-fns";
@@ -20,10 +19,10 @@ import {
   getMETAR,
   getTAF,
   getWeather,
-  getFlights,
-  getControllers,
-  getFlight,
   getFIRs,
+  getVatsimData,
+  getFlightVatStats,
+  getFlight,
 } from "./api/api";
 
 // Interfaces
@@ -38,11 +37,12 @@ import {
   IFlightVatStatsDetails,
   IFlightVatStats,
   IFirs,
+  IFirPopup,
 } from "./declaration/app";
 
 // Utilities
 import {
-  assembleClusterData,
+  assembleClusterDataTest,
   drawWeatherLayer,
   getTypeOfAircraftIcon,
   getTypeOfAircraftSelected,
@@ -74,7 +74,7 @@ function App() {
   const [displaySelectedFlight, setDisplaySelectedFlight] = useState<boolean>(
     false
   );
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedAirport, setSelectedAirport] = useState<IAirport | null>(null);
   const [displaySelectedAirport, setDisplaySelectedAirport] = useState<boolean>(
     false
@@ -87,6 +87,8 @@ function App() {
   >(null);
   const [displayPopup, setDisplayPopup] = useState<ICluster | null>(null);
   const mapRef = useRef<any>(null);
+
+  const [showPopup, setShowPopup] = useState<IFirPopup | null>(null);
 
   // Create the Cluster Data.
   const [superClusterData, setSuperClusterData] = useState({
@@ -101,15 +103,12 @@ function App() {
 
   // Assign the Flight and Cluster Data.
   const handleGetFlightData = useCallback(async () => {
-    const data = await getFlights();
-    const controllers = await getControllers();
+    const { controllers, flights } = await getVatsimData();
 
-    if (typeof data === "object" && Object.keys(data).length > 0) {
-      setFlightData(data.active_flights);
+    if (typeof flights === "object" && Object.keys(flights).length > 0) {
       setControllers(controllers);
-      setClusterData(
-        assembleClusterData([...data.active_flights, ...controllers])
-      );
+      setFlightData(flights);
+      setClusterData(assembleClusterDataTest([...flights, ...controllers]));
     } else {
       setTimeout(() => {
         setFlightData(null);
@@ -262,6 +261,10 @@ function App() {
 
   // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
   const indicateFlightInCluster = (clusterObj) => {
+    // console.log(clusterObj);
+
+    // console.log(clusterObj.properties.cluster_id);
+
     const flightsInClusters = supercluster.getLeaves(
       clusterObj.properties.cluster_id,
       Infinity
@@ -328,18 +331,20 @@ function App() {
       );
 
       // Draw out the Polyline route, but only if the service successfully returns data.
-      if (decodedFlightRoute.encodedPolyline) {
-        const routeData = await fetchRoute(decodedFlightRoute.id);
+      // if (decodedFlightRoute.encodedPolyline) {
+      const routeData = await fetchRoute(decodedFlightRoute.id);
 
-        drawPlannedRoute(
-          routeData.route?.nodes ?? null,
-          location,
-          transitionToFlightLoc
-        );
-      }
+      drawPlannedRoute(
+        routeData.route?.nodes ?? null,
+        location,
+        transitionToFlightLoc
+      );
+      // }
     }
 
-    drawCompletedRoute(completed_route, location);
+    if (completed_route) {
+      drawCompletedRoute(completed_route, location);
+    }
   };
 
   // Remove the Waypoints of the Selected Flight.
@@ -524,10 +529,10 @@ function App() {
             "circle-color": "#426d93",
           },
         });
+      }
 
-        if (transitionToFlightLoc) {
-          navigateToFlight(location);
-        }
+      if (transitionToFlightLoc) {
+        navigateToFlight(location);
       }
     },
     [navigateToFlight]
@@ -548,11 +553,11 @@ function App() {
 
     // In a hacky way to align the flight data with the latest drawn element of the Completed Route,
     // apply the latest point to the line from the Cluster Data in an attempt to properly connect the plane with the data.
-    if (location) {
-      completedRouteCoordinates.pop();
+    // if (location) {
+    //   completedRouteCoordinates.pop();
 
-      completedRouteCoordinates.push([location.longitude, location.latitude]);
-    }
+    //   completedRouteCoordinates.push([location.longitude, location.latitude]);
+    // }
 
     if (mapRef.current.getMap().getLayer("route-completed")) {
       mapRef.current
@@ -657,36 +662,48 @@ function App() {
 
   // Collect the extended flight data and then get the route.
   const selectFlight = async (
-    flightID,
+    callsign,
     transitionToFlightLoc: boolean = false,
     isInit: boolean = true,
     location?
   ) => {
-    const selectedFlightData: IFlightVatStatsDetails = await getFlight(
-      flightID
+    const findFlight = flightData?.find(
+      (flight) => flight.callsign === callsign
     );
 
-    // Assign Location data for Transition to Flight Location if there is no passed Location parameter.
-    if (!location) {
-      const {
-        current_latitude: latitude,
-        current_longitude: longitude,
-      } = selectedFlightData;
+    if (findFlight) {
+      const flightFromVatStatus = await getFlightVatStats(findFlight.callsign);
 
-      location = { latitude, longitude };
+      if (flightFromVatStatus) {
+        const selectedFlightData: IFlightVatStatsDetails = await getFlight(
+          flightFromVatStatus.id
+        );
+
+        // Assign Location data for Transition to Flight Location if there is no passed Location parameter.
+        if (!location) {
+          const {
+            current_latitude: latitude,
+            current_longitude: longitude,
+          } = selectedFlightData;
+
+          location = { latitude, longitude };
+        }
+
+        setSelectedFlight(selectedFlightData);
+
+        await getRoute(
+          location,
+          selectedFlightData.planned_dep_airport?.icao ?? "",
+          selectedFlightData.planned_route,
+          selectedFlightData.data_points,
+          selectedFlightData.planned_dest_airport?.icao ?? "",
+          transitionToFlightLoc,
+          isInit
+        );
+      } else {
+        setSelectedFlight(findFlight);
+      }
     }
-
-    setSelectedFlight(selectedFlightData);
-
-    await getRoute(
-      location,
-      selectedFlightData.planned_dep_airport?.icao ?? "",
-      selectedFlightData.planned_route,
-      selectedFlightData.data_points,
-      selectedFlightData.planned_dest_airport?.icao ?? "",
-      transitionToFlightLoc,
-      isInit
-    );
   };
 
   // Update the Selected Flight data.
@@ -705,7 +722,7 @@ function App() {
       }
 
       selectFlight(
-        selectedFlight.id,
+        selectedFlight.callsign,
         false,
         false,
         longitude
@@ -733,7 +750,7 @@ function App() {
 
   // Select the Flight.
   const selectFlightFunc = async (
-    flightID,
+    callsign,
     transitionToFlightLoc: boolean = false,
     location?
   ) => {
@@ -749,7 +766,7 @@ function App() {
       setDisplaySelectedAirport(false);
     }
 
-    await selectFlight(flightID, transitionToFlightLoc, true, location);
+    await selectFlight(callsign, transitionToFlightLoc, true, location);
 
     setLoading(false);
     setDisplaySelectedFlight(true);
@@ -786,18 +803,28 @@ function App() {
 
     // Get the Departures for the Selected Airport from the Departures data.
     const departures = flightData?.filter(
-      (departure) => airportData.icao === departure.planned_dep_airport__icao
+      (departure) => departure.planned_depairport === airportData.icao
     );
 
     // Get the Arrivals for the Selected Airport from the Active Flight data.
     const arrivals = flightData?.filter(
-      (arrival) => airportData.icao === arrival.planned_dest_airport__icao
+      (arrival) => arrival.planned_destairport === airportData.icao
     );
+
+    // Get the Controllers for the Seleccted Airport.
+    const controllersICAO = controllers?.filter((controller) => {
+      return (
+        controller.callsign
+          .toLowerCase()
+          .indexOf(airportData.icao.substring(1).toLowerCase()) !== -1
+      );
+    });
 
     return (airportData = {
       ...airportData,
       arrivals,
       departures,
+      controllers: controllersICAO,
       weather: {
         ...taf,
         ...metar["M"]["decoded"],
@@ -820,6 +847,14 @@ function App() {
     setLoading(false);
     setSelectedAirport(airportData);
     setDisplaySelectedAirport(true);
+  };
+
+  // Handle the data calls to display Flights, FIR data, and Weather.
+  const handleDataCalls = async () => {
+    await handleGetFlightData();
+    await handleGetFIRsData();
+    await getUpdatedWeather(true);
+    setLoading(false);
   };
 
   // Continue to retrieve Flight and Weather data every 15 seconds.
@@ -851,15 +886,19 @@ function App() {
 
   // When the app renders, get the data and continue to get the data every 15 seconds.
   useEffect(() => {
-    handleGetFlightData();
-    handleGetFIRsData();
-    getUpdatedWeather(true);
+    handleDataCalls();
+  }, []);
 
+  // Control the Keyboard Inputs.
+  useEffect(() => {
     const listener = (e) => {
       if (e.key === "Escape") {
-        deselectFlightFunc();
-        deselectAirportFunc();
-        setToggleNavigationMenu(false);
+        if (toggleNavigationMenu) {
+          setToggleNavigationMenu(false);
+        } else {
+          deselectFlightFunc();
+          deselectAirportFunc();
+        }
       }
     };
 
@@ -868,7 +907,7 @@ function App() {
     return () => {
       window.removeEventListener("keydown", listener);
     };
-  }, []);
+  }, [toggleNavigationMenu]);
 
   const displayPopupDataView = () => {
     if (displayPopup) {
@@ -880,7 +919,6 @@ function App() {
           frequency,
           latitude,
           longitude,
-          server,
           time_logon,
         } = displayPopup.properties;
 
@@ -938,6 +976,48 @@ function App() {
     return null;
   };
 
+  // Control the FIR Popup.
+  const firPopup = () => {
+    if (showPopup) {
+      const {
+        lngLat: [longitude, latitude],
+        firResp,
+      } = showPopup;
+
+      const parseMemberData = JSON.parse(firResp.properties.members);
+      const memberData: any = Object.values(parseMemberData);
+
+      // Get the Frequency of the FIR Controller.
+      const getFrequency = (callsign) => {
+        const foundController = controllers?.find(
+          (controller) => controller.callsign === callsign
+        );
+
+        return foundController ? foundController.frequency : "N/A";
+      };
+
+      return (
+        <Popup
+          latitude={latitude}
+          longitude={longitude}
+          closeButton={true}
+          closeOnClick={false}
+          onClose={() => setShowPopup(null)}
+        >
+          <div className="mapboxgl-popup-content-interior">
+            {memberData.map((member, i) => (
+              <div key={i}>
+                <span>{member.name}</span>
+                <span>{member.callsign}</span>
+                <span>{getFrequency(member.callsign)}</span>
+              </div>
+            ))}
+          </div>
+        </Popup>
+      );
+    }
+  };
+
   useEffect(() => {
     const bounds =
       mapRef && mapRef.current
@@ -951,32 +1031,6 @@ function App() {
       options: { radius: 75, maxZoom: 10 },
     });
   }, [clusterData, viewport.zoom]);
-
-  const firClickHandler = (lngLat, firResp) => {
-    const isPopupOpen = document.querySelector(".mapboxgl-popup");
-
-    if (isPopupOpen) {
-      isPopupOpen.remove();
-    }
-
-    const parseMemberData = JSON.parse(firResp.properties.members);
-
-    const memberData: any = Object.values(parseMemberData);
-
-    let popupContent = "";
-
-    for (let i = 0; i < memberData.length; i++) {
-      popupContent += "<div class='mapboxgl-popup-content-interior'>";
-      popupContent += `<span>${memberData[i].name}</span>`;
-      popupContent += `<span>${memberData[i].callsign}</span>`;
-      popupContent += "</div>";
-    }
-
-    new mapboxgl.Popup({ closeOnClick: false })
-      .setLngLat(lngLat)
-      .setHTML(popupContent)
-      .addTo(mapRef.current.getMap());
-  };
 
   return (
     <ReactMapGL
@@ -998,8 +1052,9 @@ function App() {
           (fir) => fir.layer.id.includes("FIR-") && fir.layer.type === "fill"
         );
 
-        if (firResp) {
-          firClickHandler(e.lngLat, firResp);
+        // Render FIR Popup if an FIR has been found and the click event happens on "overlays".
+        if (firResp && e.target.className === "overlays") {
+          setShowPopup({ lngLat: e.lngLat, firResp });
         }
       }}
       onTransitionEnd={() => {
@@ -1055,18 +1110,14 @@ function App() {
                 onClick={(e) => {
                   e.preventDefault();
 
-                  console.log(clusterObj.properties.isController);
-
-                  if (clusterObj.properties.isController) {
-                    selectControllerFunc(clusterObj);
-                  } else {
-                    selectFlightFunc(clusterObj.properties.id, false, {
+                  if (!clusterObj.properties.isController) {
+                    selectFlightFunc(clusterObj.properties.callsign, false, {
                       latitude,
                       longitude,
                     });
-                  }
 
-                  setDisplaySelectedFlight(false);
+                    setDisplaySelectedFlight(false);
+                  }
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.src = handleIcon(clusterObj, true);
@@ -1126,8 +1177,8 @@ function App() {
       {selectedFlight && (
         <FlightData
           selectedFlight={selectedFlight}
-          displaySelectedFlight={displaySelectedFlight}
           checkStillActive={checkStillActive}
+          displaySelectedFlight={displaySelectedFlight}
           deselectFlightFunc={deselectFlightFunc}
           selectAirportFunc={selectAirportFunc}
         />
@@ -1143,6 +1194,8 @@ function App() {
       )}
 
       {displayPopupDataView()}
+
+      {showPopup && firPopup()}
     </ReactMapGL>
   );
 }

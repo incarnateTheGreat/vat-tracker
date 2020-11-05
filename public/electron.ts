@@ -3,15 +3,21 @@
 // import path from "path";
 
 const { app, BrowserWindow } = require("electron");
+const electron = require("electron");
+
 const path = require("path");
 const isDev = require("electron-is-dev");
 const url = require("url");
 
 function createWindow() {
+  var screenElectron = electron.screen;
+  var mainScreen = screenElectron.getPrimaryDisplay();
+  var { width, height } = mainScreen.size;
+
   // Create the browser window.
   const win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: width * 0.8,
+    height: height * 0.8,
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,

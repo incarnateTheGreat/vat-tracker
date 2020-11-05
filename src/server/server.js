@@ -43,18 +43,45 @@ app.use("/api/metar", (req, res) => {
   });
 });
 
-app.use("/api/flights", (req, res) => {
-  const options = {
-    url: `${VAT_STATUS_BASE_URL}/home_page/`,
-    method: "GET",
-  };
+// app.use("/api/flights", (req, res) => {
+//   const options = {
+//     url: `${VAT_STATUS_BASE_URL}/home_page/`,
+//     method: "GET",
+//   };
 
-  request(options, (error, response, body) => {
-    body ? res.send(body) : res.send(null);
-  });
-});
+//   request(options, (error, response, body) => {
+//     body ? res.send(body) : res.send(null);
+//   });
+// });
 
-app.use("/api/controllers", (req, res) => {
+// app.use("/api/controllers", (req, res) => {
+//   const options = {
+//     url: "http://eu.data.vatsim.net/vatsim-data.json",
+//     method: "GET",
+//   };
+
+//   request(options, (error, response, body) => {
+//     if (body) {
+//       const parsed = JSON.parse(body);
+
+//       const controllers = parsed.clients
+//         .filter((user) => user.clienttype === "ATC")
+//         .reduce((r, acc) => {
+//           acc["isController"] = true;
+
+//           r.push(acc);
+
+//           return r;
+//         }, []);
+
+//       return res.send(controllers);
+//     } else {
+//       res.send([]);
+//     }
+//   });
+// });
+
+app.use("/api/vatsimJson", (req, res) => {
   const options = {
     url: "http://eu.data.vatsim.net/vatsim-data.json",
     method: "GET",
@@ -63,6 +90,15 @@ app.use("/api/controllers", (req, res) => {
   request(options, (error, response, body) => {
     if (body) {
       const parsed = JSON.parse(body);
+
+      const flights = parsed.clients
+        .filter((user) => user.clienttype !== "ATC")
+        .reduce((r, acc) => {
+          r.push(acc);
+
+          return r;
+        }, []);
+
 
       const controllers = parsed.clients
         .filter((user) => user.clienttype === "ATC")
@@ -74,7 +110,34 @@ app.use("/api/controllers", (req, res) => {
           return r;
         }, []);
 
-      return res.send(controllers);
+      return res.send({flights, controllers});
+    } else {
+      res.send([]);
+    }
+  });
+});
+
+app.use("/api/flightVatStats", (req, res) => {
+  const { callsign } = req.query;
+
+  const options = {
+    url: `${VAT_STATUS_BASE_URL}/flights/?callsign__icontains=&callsign=${callsign}&callsign__contains=&real_name=&real_name__icontains=&format=json`,
+    method: "GET",
+  };
+
+  request(options, (error, response, body) => {
+
+    if (body) {
+      const parsed = JSON.parse(body);
+
+      const selectedFlight = parsed.results
+        .filter((flight) => flight.status === 1)
+
+      if (selectedFlight) {
+        return res.send(...selectedFlight);
+      }
+
+      return res.send([])
     } else {
       res.send([]);
     }

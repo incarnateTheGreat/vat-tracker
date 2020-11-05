@@ -21,7 +21,13 @@ export const AirportData = ({
   const [departuresSortKey, setDeparturesSortKey] = useState<string>(
     "callsign"
   );
+  const [controllersSortDirection, setControllersSortDirection] = useState<
+    string
+  >("ASC");
   const [arrivalsSortKey, setArrivalsSortKey] = useState<string>("callsign");
+  const [controllersSortKey, setControllersSortKey] = useState<string>(
+    "callsign"
+  );
   const iconPath = "./images/weather-icons";
 
   // Parse the Airport Data, specifically for the Aircraft Type.
@@ -38,6 +44,9 @@ export const AirportData = ({
   );
   const [arrivals, setArrivals] = useState<IFlightVatStats[]>(
     handleAirportData(selectedAirport.arrivals) || []
+  );
+  const [controllers, setControllers] = useState<IFlightVatStats[]>(
+    selectedAirport.controllers || []
   );
 
   // Sort the Departures data.
@@ -70,6 +79,21 @@ export const AirportData = ({
     setArrivalsSortKey(sortKey);
   };
 
+  // Sort the Controllers data.
+  const sortControllersData = (sortDirection = "ASC", sortKey = "callsign") => {
+    const arr = controllers.sort((a, b) => {
+      if (sortDirection === "ASC") {
+        return a[sortKey].localeCompare(b[sortKey]);
+      }
+
+      return b[sortKey].localeCompare(a[sortKey]);
+    });
+
+    setControllers(arr);
+    setControllersSortDirection(sortDirection);
+    setControllersSortKey(sortKey);
+  };
+
   // Handle the Sort Direction based on criteria.
   const handleSortDirection = (sortDirection) => {
     return sortDirection === "ASC" ? "DESC" : "ASC";
@@ -79,7 +103,12 @@ export const AirportData = ({
   useEffect(() => {
     sortDepartureData(departuresSortDirection, departuresSortKey);
     sortArrivalsData(arrivalsSortDirection, arrivalsSortKey);
-  }, [arrivals, departures]);
+    sortControllersData(controllersSortDirection, controllersSortKey);
+  }, [arrivals, controllers, departures]);
+
+  useEffect(() => {
+    console.log({ selectedAirport });
+  }, [selectedAirport]);
 
   useEffect(() => {
     setTabData([
@@ -106,18 +135,18 @@ export const AirportData = ({
                     onClick={() =>
                       sortDepartureData(
                         handleSortDirection(departuresSortDirection),
-                        "real_name"
+                        "realname"
                       )
                     }
                   >
-                    User ID
+                    User
                   </div>
                   <div
                     className="grid-container-airport-flights-departures-departure"
                     onClick={() => {
                       sortDepartureData(
                         handleSortDirection(departuresSortDirection),
-                        "planned_dest_airport__icao"
+                        "planned_destairport"
                       );
                     }}
                   >
@@ -140,16 +169,16 @@ export const AirportData = ({
                     <div
                       className="grid-container-airport-flights-departures"
                       key={key}
-                      onClick={() => selectFlightFunc(departure.id, true)}
+                      onClick={() => selectFlightFunc(departure.callsign, true)}
                     >
                       <div className="grid-container-airport-flights-departures-departure">
                         <span>{departure.callsign}</span>
                       </div>
                       <div className="grid-container-airport-flights-departures-departure">
-                        <span>{departure.real_name}</span>
+                        <span>{departure.realname}</span>
                       </div>
                       <div className="grid-container-airport-flights-departures-departure">
-                        {departure.planned_dest_airport__icao}
+                        {departure.planned_destairport}
                       </div>
                       <div className="grid-container-airport-flights-departures-departure">
                         {departure.planned_aircraft}
@@ -189,18 +218,18 @@ export const AirportData = ({
                     onClick={() => {
                       sortArrivalsData(
                         handleSortDirection(arrivalsSortDirection),
-                        "real_name"
+                        "realname"
                       );
                     }}
                   >
-                    User ID
+                    User
                   </div>
                   <div
                     className="grid-container-airport-flights-arrivals-arrival"
                     onClick={() => {
                       sortArrivalsData(
                         handleSortDirection(arrivalsSortDirection),
-                        "planned_dep_airport__icao"
+                        "planned_depairport"
                       );
                     }}
                   >
@@ -223,16 +252,16 @@ export const AirportData = ({
                     <div
                       className="grid-container-airport-flights-arrivals"
                       key={key}
-                      onClick={() => selectFlightFunc(arrival.id, true)}
+                      onClick={() => selectFlightFunc(arrival.callsign, true)}
                     >
                       <div className="grid-container-airport-flights-arrivals-arrival">
                         {arrival.callsign}
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
-                        {arrival.real_name}
+                        {arrival.realname}
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
-                        {arrival.planned_dep_airport__icao}
+                        {arrival.planned_depairport}
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
                         {arrival.planned_aircraft}
@@ -249,12 +278,82 @@ export const AirportData = ({
           </>
         ),
       },
+      {
+        label: "Controllers",
+        component: (
+          <>
+            <section>
+              <div className="grid-container-airport-flights">
+                <div className="grid-container-airport-flights-arrivals grid-container-airport-flights-controllers-headers">
+                  <div
+                    className="grid-container-airport-flights-controllers-arrival"
+                    onClick={() => {
+                      sortControllersData(
+                        handleSortDirection(controllersSortDirection),
+                        "callsign"
+                      );
+                    }}
+                  >
+                    Callsign
+                  </div>
+                  <div
+                    className="grid-container-airport-flights-controllers-arrival"
+                    onClick={() => {
+                      sortControllersData(
+                        handleSortDirection(controllersSortDirection),
+                        "realname"
+                      );
+                    }}
+                  >
+                    User
+                  </div>
+                  <div
+                    className="grid-container-airport-flights-controllers-arrival"
+                    onClick={() => {
+                      sortControllersData(
+                        handleSortDirection(controllersSortDirection),
+                        "frequency"
+                      );
+                    }}
+                  >
+                    Frequency
+                  </div>
+                </div>
+                {controllers.length > 0 ? (
+                  controllers.map((controller, key) => (
+                    <div
+                      className="grid-container-airport-flights-arrivals"
+                      key={key}
+                    >
+                      <div className="grid-container-airport-flights-controllers-arrival">
+                        {controller.callsign}
+                      </div>
+                      <div className="grid-container-airport-flights-controllers-arrival">
+                        {controller.realname}
+                      </div>
+                      <div className="grid-container-airport-flights-controllers-arrival">
+                        {controller.frequency}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="grid-container-airport-flights-departures grid-container-airport-flights-departures-no-data">
+                    None
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        ),
+      },
     ]);
   }, [
     arrivals,
+    controllers,
     departures,
     selectFlightFunc,
     arrivalsSortDirection,
+    controllersSortDirection,
     departuresSortDirection,
   ]);
 

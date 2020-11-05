@@ -106,6 +106,11 @@ export interface IFlightVatStats {
     municipality: string;
     icao: string;
   };
+  planned_depairport: string;
+  planned_destairport: string;
+  realname: string;
+  clienttype: string;
+  frequency: string;
 }
 
 export interface IFirs {
@@ -117,163 +122,172 @@ export interface IFirs {
 }
 
 export interface IFlightVatStatsDetails {
-  id: number;
-  data_points: [
+  id?: number;
+  data_points?: [
     {
-      id: number;
-      latitude: number;
-      longitude: number;
-      altitude: number;
-      heading: number;
-      ground_speed: number;
-      ground_elevation: number;
-      distance_from_departure: number;
-      distance_from_destination: number;
-      created_at: string;
-      flight: number;
+      id?: number;
+      latitude?: number;
+      longitude?: number;
+      altitude?: number;
+      heading?: number;
+      ground_speed?: number;
+      ground_elevation?: number;
+      distance_from_departure?: number;
+      distance_from_destination?: number;
+      created_at?: string;
+      flight?: number;
     }
   ];
-  callsign: string;
-  real_name: string;
-  client_type: string;
-  planned_aircraft: string;
-  planned_tas_cruise: number;
-  planned_altitude: string;
-  planned_flight_type: string;
-  planned_route: string;
-  planned_remarks: string;
-  status: number;
-  starting_time: string;
-  takeoff_time: string;
-  landing_time: any;
-  ending_time: any;
-  last_updated: string;
-  current_latitude: number;
-  current_longitude: number;
-  current_altitude: number;
-  current_heading: number;
-  current_ground_speed: number;
-  is_gdpr: boolean;
-  is_hide_display_name: boolean;
-  is_hidden_profile: boolean;
-  is_exclude_from_search: boolean;
-  is_legacy_vatstats: boolean;
-  legacy_vatstats_flight_id: string;
-  has_elevation_data: boolean;
-  elevation_data_counter: number;
-  duration: string;
-  is_copied_to_mysql: boolean;
-  airline: {
-    id: number;
-    icao: string;
-    iata: string;
-    name: string;
-    callsign: string;
-    country: string;
-    total_flights: number;
-    is_exclude_from_search: boolean;
+  callsign?: string;
+  real_name?: string;
+  client_type?: string;
+  planned_aircraft?: string;
+  planned_tas_cruise?: number;
+  planned_altitude?: string;
+  planned_flight_type?: string;
+  planned_route?: string;
+  planned_remarks?: string;
+  status?: number;
+  starting_time?: string;
+  takeoff_time?: string;
+  landing_time?: any;
+  ending_time?: any;
+  last_updated?: string;
+  current_latitude?: number;
+  current_longitude?: number;
+  current_altitude?: number;
+  current_heading?: number;
+  current_ground_speed?: number;
+  is_gdpr?: boolean;
+  is_hide_display_name?: boolean;
+  is_hidden_profile?: boolean;
+  is_exclude_from_search?: boolean;
+  is_legacy_vatstats?: boolean;
+  legacy_vatstats_flight_id?: string;
+  has_elevation_data?: boolean;
+  elevation_data_counter?: number;
+  duration?: string;
+  is_copied_to_mysql?: boolean;
+  airline?: {
+    id?: number;
+    icao?: string;
+    iata?: string;
+    name?: string;
+    callsign?: string;
+    country?: string;
+    total_flights?: number;
+    is_exclude_from_search?: boolean;
   };
-  cid: {
-    id: number;
-    cid: number;
-    real_name: string;
-    total_flying_time: string;
-    nautical_miles: string;
-    statute_miles: string;
-    kilometers: string;
-    most_common_route: string;
-    total_controlling_time: string;
-    is_controller: boolean;
-    is_pilot: boolean;
-    is_gdpr: boolean;
-    is_hidden_real_name: boolean;
-    is_hidden_profile: boolean;
-    is_exclude_from_search: boolean;
+  cid?: {
+    id?: number;
+    cid?: number;
+    real_name?: string;
+    total_flying_time?: string;
+    nautical_miles?: string;
+    statute_miles?: string;
+    kilometers?: string;
+    most_common_route?: string;
+    total_controlling_time?: string;
+    is_controller?: boolean;
+    is_pilot?: boolean;
+    is_gdpr?: boolean;
+    is_hidden_real_name?: boolean;
+    is_hidden_profile?: boolean;
+    is_exclude_from_search?: boolean;
   };
-  aircraft: any;
-  planned_dep_airport: {
-    id: number;
-    name: string;
-    municipality: string;
-    region: string;
-    country: string;
-    country_short: string;
-    icao: string;
-    latitude: number;
-    longitude: number;
-    elevation: number;
-    departure_count: number;
-    arrival_count: number;
-    most_common_aircraft: [
+  aircraft?: any;
+  planned_dep_airport?: {
+    id?: number;
+    name?: string;
+    municipality?: string;
+    region?: string;
+    country?: string;
+    country_short?: string;
+    icao?: string;
+    latitude?: number;
+    longitude?: number;
+    elevation?: number;
+    departure_count?: number;
+    arrival_count?: number;
+    most_common_aircraft?: [
       {
-        planned_aircraft: string;
-        dcount: number;
+        planned_aircraft?: string;
+        dcount?: number;
       }
     ];
-    most_common_airline: [
+    most_common_airline?: [
       {
-        airline__name: string;
-        dcount: number;
-      }
-    ];
-  };
-  planned_dest_airport: {
-    id: number;
-    name: string;
-    municipality: string;
-    region: string;
-    country: string;
-    country_short: string;
-    icao: string;
-    latitude: number;
-    longitude: number;
-    elevation: number;
-    departure_count: number;
-    arrival_count: number;
-    most_common_aircraft: [
-      {
-        planned_aircraft: string;
-        dcount: number;
-      }
-    ];
-    most_common_airline: [
-      {
-        airline__name: string;
-        dcount: number;
+        airline__name?: string;
+        dcount?: number;
       }
     ];
   };
-  planned_alt_airport: {
-    id: number;
-    name: string;
-    municipality: string;
-    region: string;
-    country: string;
-    country_short: string;
-    icao: string;
-    latitude: number;
-    longitude: number;
-    elevation: number;
-    departure_count: number;
-    arrival_count: number;
-    most_common_aircraft: [
+  planned_dest_airport?: {
+    id?: number;
+    name?: string;
+    municipality?: string;
+    region?: string;
+    country?: string;
+    country_short?: string;
+    icao?: string;
+    latitude?: number;
+    longitude?: number;
+    elevation?: number;
+    departure_count?: number;
+    arrival_count?: number;
+    most_common_aircraft?: [
       {
-        planned_aircraft: string;
-        dcount: number;
+        planned_aircraft?: string;
+        dcount?: number;
       }
     ];
-    most_common_airline: [
+    most_common_airline?: [
       {
-        airline__name: string;
-        dcount: number;
+        airline__name?: string;
+        dcount?: number;
       }
     ];
   };
-  callsign_fk: {
-    id: number;
-    callsign: string;
-    total: number;
-    created_at: string;
+  planned_alt_airport?: {
+    id?: number;
+    name?: string;
+    municipality?: string;
+    region?: string;
+    country?: string;
+    country_short?: string;
+    icao?: string;
+    latitude?: number;
+    longitude?: number;
+    elevation?: number;
+    departure_count?: number;
+    arrival_count?: number;
+    most_common_aircraft?: [
+      {
+        planned_aircraft?: string;
+        dcount?: number;
+      }
+    ];
+    most_common_airline?: [
+      {
+        airline__name?: string;
+        dcount?: number;
+      }
+    ];
+  };
+  callsign_fk?: {
+    id?: number;
+    callsign?: string;
+    total?: number;
+    created_at?: string;
+  };
+}
+
+export interface IFirPopup {
+  lngLat: number[];
+  firResp: {
+    properties: {
+      members: string;
+    };
   };
 }
 
@@ -287,6 +301,50 @@ export interface ICluster {
 }
 
 export interface IClusterDetails extends IFlightVatStatsDetails {}
+
+export interface IVatsimFlight {
+  callsign: string;
+  cid: string;
+  realname: string;
+  clienttype: string;
+  frequency: null;
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  groundspeed: number;
+  planned_aircraft: string;
+  planned_tascruise: string;
+  planned_depairport: string;
+  planned_altitude: string;
+  planned_destairport: string;
+  server: string;
+  protrevision: number;
+  rating: number;
+  transponder: number;
+  facilitytype: number;
+  visualrange: number;
+  planned_revision: string;
+  planned_flighttype: string;
+  planned_deptime: string;
+  planned_actdeptime: string;
+  planned_hrsenroute: string;
+  planned_minenroute: string;
+  planned_hrsfuel: string;
+  planned_minfuel: string;
+  planned_altairport: string;
+  planned_remarks: string;
+  planned_route: string;
+  planned_depairport_lat: number;
+  planned_depairport_lon: number;
+  planned_destairport_lat: number;
+  planned_destairport_lon: number;
+  atis_message: string;
+  time_last_atis_received: string;
+  time_logon: string;
+  heading: number;
+  qnh_i_hg: number;
+  qnh_mb: number;
+}
 
 export interface IClusterProperties
   extends IFlightVatStats,
