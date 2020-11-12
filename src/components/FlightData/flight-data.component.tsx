@@ -1,5 +1,5 @@
 import React from "react";
-import { getTypeOfAircraft } from "../../helpers/utils";
+import { getTypeOfAircraft, handleDTG } from "../../helpers/utils";
 
 export const FlightData = ({
   selectedFlight,
@@ -8,9 +8,9 @@ export const FlightData = ({
   deselectFlightFunc,
   selectAirportFunc,
 }) => {
-  const isStillSelected = checkStillActive();
+  if (selectedFlight && displaySelectedFlight && checkStillActive()) {
+    console.log({ selectedFlight });
 
-  if (selectedFlight && displaySelectedFlight && isStillSelected) {
     const {
       callsign,
       real_name,
@@ -114,31 +114,49 @@ export const FlightData = ({
               />
               <div>{dest_airport_name}</div>
             </div>
-            <div className="grid-container-item grid-container-item-lower-level grid-container-item-aircraft-type">
-              <div>Equipment</div>
-              <div>{getTypeOfAircraft(planned_aircraft)}</div>
-            </div>
-            <div className="grid-container-item grid-container-item-lower-level grid-container-item-altitude">
-              <div>Altitude</div>
-              <div>{current_altitude} ft.</div>
-            </div>
-            <div className="grid-container-item grid-container-item-lower-level grid-container-item-heading">
-              <div>Heading</div>
-              <div className="grid-container-item-heading-container">
-                <div
-                  className="grid-container-item-heading-container-arrow"
-                  style={{
-                    transform: `rotate(${current_heading}deg)`,
-                  }}
-                >
-                  &#x2B06;
-                </div>
-                {current_heading}&deg;
+            <div className="grid-container-item grid-container-item-lower-level">
+              <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-aircraft-type">
+                <div>Equipment</div>
+                <div>{getTypeOfAircraft(planned_aircraft)}</div>
               </div>
-            </div>
-            <div className="grid-container-item grid-container-item-lower-level grid-container-item-airspeed">
-              <div>Ground Speed</div>
-              <div>{current_ground_speed} kts.</div>
+              <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-altitude">
+                <div>Altitude</div>
+                <div>{current_altitude} ft.</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-heading">
+                <div>Heading</div>
+                <div className="grid-container-item-heading-container">
+                  <div
+                    className="grid-container-item-heading-container-arrow"
+                    style={{
+                      transform: `rotate(${current_heading}deg)`,
+                    }}
+                  >
+                    &#x2B06;
+                  </div>
+                  {current_heading}&deg;
+                </div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-airspeed">
+                <div>Ground Speed</div>
+                <div>{current_ground_speed} kts.</div>
+              </div>
+              <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-airspeed">
+                <div>Distance to Go</div>
+                <div>
+                  {handleDTG([
+                    [
+                      selectedFlight.current_latitude,
+                      selectedFlight.current_longitude,
+                    ],
+                    [
+                      selectedFlight.planned_dest_airport.latitude,
+                      selectedFlight.planned_dest_airport.longitude,
+                    ],
+                  ])}{" "}
+                  NMI
+                </div>
+              </div>
             </div>
           </div>
           <div className="info-window-details-flight-status">

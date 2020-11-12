@@ -79,7 +79,7 @@ export interface IFlight {
   transponder: string;
 }
 
-export interface IFlightVatStats {
+export interface IFlightVatStats extends IVatsimFlight {
   id: number;
   callsign: string;
   real_name: string;
@@ -311,6 +311,7 @@ export interface IVatsimFlight {
   latitude: number;
   longitude: number;
   altitude: number;
+  dtg: number;
   groundspeed: number;
   planned_aircraft: string;
   planned_tascruise: string;

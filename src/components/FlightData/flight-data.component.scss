@@ -63,21 +63,30 @@
         }
 
         &-lower-level {
-          font-size: $size-18;
-          padding: 0;
+          cursor: pointer;
+          display: grid;
+          grid-template-columns: 20% 20% 20% 20% auto;
+          grid-gap: 2px;
+          grid-column: span 4;
+          padding: 2px 0;
 
-          & > div {
-            &:first-child {
-              background-color: rgba(154, 154, 154, 0.8);
-              font-weight: 600;
-              padding: 4px 0;
-            }
+          &-element {
+            font-size: $size-16;
+            padding: 0;
 
-            &:last-child {
-              align-items: center;
-              display: flex;
-              justify-content: center;
-              height: 50px;
+            & > div {
+              &:first-child {
+                background-color: #6b6b6b;
+                font-weight: 600;
+                padding: 4px 0;
+              }
+
+              &:last-child {
+                align-items: center;
+                display: flex;
+                justify-content: center;
+                height: 50px;
+              }
             }
           }
         }

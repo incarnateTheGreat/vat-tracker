@@ -177,6 +177,48 @@ export const assembleAiportData = (data) => {
   });
 };
 
+const getDeg2rad = (deg) => {
+  return deg * (Math.PI / 180);
+};
+
+export const getNauticalMilesFromKM = (km) => {
+  return Math.round(km * 0.5399568);
+};
+
+export const getDistanceToDestination = (latlngs) => {
+  const R = 6371; // Radius of the earth in km
+
+  try {
+    const flight_coords_lat = latlngs[0][0];
+    const flight_coords_lng = latlngs[0][1];
+    const airport_coords_lat = parseFloat(latlngs[1][0]);
+    const airport_coords_lng = parseFloat(latlngs[1][1]);
+
+    const dLat = getDeg2rad(airport_coords_lat - flight_coords_lat);
+    const dLon = getDeg2rad(airport_coords_lng - flight_coords_lng);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(getDeg2rad(flight_coords_lat)) *
+        Math.cos(getDeg2rad(airport_coords_lat)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+
+    return Math.round(d);
+  } catch (err) {
+    return null;
+  }
+};
+
+// Calculate the Distange to Go (DTG) for Flights to Airports.
+export const handleDTG = (distanceLatLngs) => {
+  const distanceKM = getDistanceToDestination(distanceLatLngs) ?? "N/A";
+  const distanceNMI = getNauticalMilesFromKM(distanceKM) ?? "N/A";
+
+  return distanceNMI;
+};
+
 export const drawWeatherLayer = (map, timestamp) => {
   return map.addLayer({
     id: "weatherLayer",

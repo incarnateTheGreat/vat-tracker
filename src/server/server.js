@@ -97,8 +97,10 @@ app.use("/api/vatsimJson", (req, res) => {
           r.push(acc);
 
           return r;
-        }, []);
-
+        }, [])
+        .sort((a,b) => {
+          return a['callsign'].localeCompare(b['callsign']);
+        })
 
       const controllers = parsed.clients
         .filter((user) => user.clienttype === "ATC")
@@ -108,7 +110,10 @@ app.use("/api/vatsimJson", (req, res) => {
           r.push(acc);
 
           return r;
-        }, []);
+        }, [])
+        .sort((a,b) => {
+          return a['callsign'].localeCompare(b['callsign']);
+        })
 
       return res.send({flights, controllers});
     } else {

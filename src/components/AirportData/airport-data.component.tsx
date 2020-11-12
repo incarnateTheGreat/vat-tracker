@@ -67,6 +67,14 @@ export const AirportData = ({
   // Sort the Arrivals data.
   const sortArrivalsData = (sortDirection = "ASC", sortKey = "callsign") => {
     const arr = arrivals.sort((a, b) => {
+      if (sortKey === "dtg") {
+        if (sortDirection === "ASC") {
+          return a.dtg - b.dtg;
+        }
+
+        return b.dtg - a.dtg;
+      }
+
       if (sortDirection === "ASC") {
         return a[sortKey].localeCompare(b[sortKey]);
       }
@@ -105,10 +113,6 @@ export const AirportData = ({
     sortArrivalsData(arrivalsSortDirection, arrivalsSortKey);
     sortControllersData(controllersSortDirection, controllersSortKey);
   }, [arrivals, controllers, departures]);
-
-  useEffect(() => {
-    console.log({ selectedAirport });
-  }, [selectedAirport]);
 
   useEffect(() => {
     setTabData([
@@ -240,6 +244,17 @@ export const AirportData = ({
                     onClick={() => {
                       sortArrivalsData(
                         handleSortDirection(arrivalsSortDirection),
+                        "dtg"
+                      );
+                    }}
+                  >
+                    Distance to Go
+                  </div>
+                  <div
+                    className="grid-container-airport-flights-arrivals-arrival"
+                    onClick={() => {
+                      sortArrivalsData(
+                        handleSortDirection(arrivalsSortDirection),
                         "planned_aircraft"
                       );
                     }}
@@ -262,6 +277,9 @@ export const AirportData = ({
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
                         {arrival.planned_depairport}
+                      </div>
+                      <div className="grid-container-airport-flights-arrivals-arrival">
+                        {arrival.dtg} NMI
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
                         {arrival.planned_aircraft}

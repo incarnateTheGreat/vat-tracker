@@ -9,7 +9,7 @@ import ReactMapGL, {
 import useSupercluster from "use-supercluster";
 import * as d3 from "d3-ease";
 import { format } from "date-fns";
-import { getTypeOfAircraft } from "./helpers/utils";
+import { getTypeOfAircraft, handleDTG } from "./helpers/utils";
 
 // APIs
 import {
@@ -103,7 +103,7 @@ function App() {
 
   // Assign the Flight and Cluster Data.
   const handleGetFlightData = useCallback(async () => {
-    const { controllers, flights } = await getVatsimData();
+    let { controllers, flights } = await getVatsimData();
 
     if (typeof flights === "object" && Object.keys(flights).length > 0) {
       setControllers(controllers);
@@ -306,10 +306,11 @@ function App() {
   // Check if Selected Flight is still selected.
   const checkStillActive = useCallback(() => {
     return (
-      flightData?.find(
-        (flight: IFlightVatStats) =>
-          selectedFlight?.callsign === flight.callsign
-      ) ?? null
+      (selectedFlight &&
+        flightData?.find((flight: IFlightVatStats) => {
+          return selectedFlight?.callsign === flight.callsign;
+        })) ??
+      null
     );
   }, [flightData, selectedFlight]);
 
@@ -700,9 +701,16 @@ function App() {
           transitionToFlightLoc,
           isInit
         );
-      } else {
-        setSelectedFlight(findFlight);
       }
+      // else {
+      //   console.log({ checkStillActive: checkStillActive() }, { findFlight });
+
+      //   if (!checkStillActive()) {
+      //     deselectFlightFunc();
+      //   } else {
+      //     setSelectedFlight(findFlight);
+      //   }
+      // }
     }
   };
 
@@ -720,6 +728,8 @@ function App() {
         longitude = getActiveFlightData.geometry.coordinates[0];
         latitude = getActiveFlightData.geometry.coordinates[1];
       }
+
+      console.log("getUpdatedSelectedFlight");
 
       selectFlight(
         selectedFlight.callsign,
@@ -807,9 +817,16 @@ function App() {
     );
 
     // Get the Arrivals for the Selected Airport from the Active Flight data.
-    const arrivals = flightData?.filter(
-      (arrival) => arrival.planned_destairport === airportData.icao
-    );
+    const arrivals = flightData
+      ?.filter((arrival) => arrival.planned_destairport === airportData.icao)
+      .map((arrival) => {
+        arrival.dtg = handleDTG([
+          [arrival.latitude, arrival.longitude],
+          [airportData.latitude, airportData.longitude],
+        ]);
+
+        return arrival;
+      });
 
     // Get the Controllers for the Seleccted Airport.
     const controllersICAO = controllers?.filter((controller) => {
@@ -863,6 +880,10 @@ function App() {
     drawOnlineFIRs(onlineFirs);
     getUpdatedWeather();
     getUpdatedSelectedFlight();
+
+    if (setLoading) {
+      setLoading(false);
+    }
   }, 15000);
 
   // Get the total number of connections.
