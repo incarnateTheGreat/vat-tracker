@@ -215,6 +215,9 @@ function App() {
         }
       }
 
+      console.log({ firLayers });
+      console.log({ onlineFirKeys });
+
       // Loop through the active FIR Layers. If they're no longer active, then remove them from the map.
       for (const firKey of firLayers) {
         if (!onlineFirKeys.includes(firKey) && map.getLayer(`FIR-${firKey}`)) {
@@ -549,16 +552,12 @@ function App() {
       return r;
     }, []);
 
-    // Handle the Anti-Merdian Line for the Completed Route.
-    handleAntiMeridian(completedRouteCoordinates);
-
     // In a hacky way to align the flight data with the latest drawn element of the Completed Route,
     // apply the latest point to the line from the Cluster Data in an attempt to properly connect the plane with the data.
-    // if (location) {
-    //   completedRouteCoordinates.pop();
+    completedRouteCoordinates.push([location.longitude, location.latitude]);
 
-    //   completedRouteCoordinates.push([location.longitude, location.latitude]);
-    // }
+    // Handle the Anti-Merdian Line for the Completed Route.
+    handleAntiMeridian(completedRouteCoordinates);
 
     if (mapRef.current.getMap().getLayer("route-completed")) {
       mapRef.current
@@ -728,8 +727,6 @@ function App() {
         longitude = getActiveFlightData.geometry.coordinates[0];
         latitude = getActiveFlightData.geometry.coordinates[1];
       }
-
-      console.log("getUpdatedSelectedFlight");
 
       selectFlight(
         selectedFlight.callsign,

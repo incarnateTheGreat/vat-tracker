@@ -172,7 +172,9 @@ export const assembleAiportData = (data) => {
   return data.map((airport) => {
     return {
       ...airport,
-      combined: `${airport.icao} (${airport.municipality})`,
+      combined: `${airport.icao} ${
+        airport.municipality && `(${airport.municipality})`
+      }`,
     };
   });
 };

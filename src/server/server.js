@@ -43,44 +43,6 @@ app.use("/api/metar", (req, res) => {
   });
 });
 
-// app.use("/api/flights", (req, res) => {
-//   const options = {
-//     url: `${VAT_STATUS_BASE_URL}/home_page/`,
-//     method: "GET",
-//   };
-
-//   request(options, (error, response, body) => {
-//     body ? res.send(body) : res.send(null);
-//   });
-// });
-
-// app.use("/api/controllers", (req, res) => {
-//   const options = {
-//     url: "http://eu.data.vatsim.net/vatsim-data.json",
-//     method: "GET",
-//   };
-
-//   request(options, (error, response, body) => {
-//     if (body) {
-//       const parsed = JSON.parse(body);
-
-//       const controllers = parsed.clients
-//         .filter((user) => user.clienttype === "ATC")
-//         .reduce((r, acc) => {
-//           acc["isController"] = true;
-
-//           r.push(acc);
-
-//           return r;
-//         }, []);
-
-//       return res.send(controllers);
-//     } else {
-//       res.send([]);
-//     }
-//   });
-// });
-
 app.use("/api/vatsimJson", (req, res) => {
   const options = {
     url: "http://eu.data.vatsim.net/vatsim-data.json",
