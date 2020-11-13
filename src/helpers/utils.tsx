@@ -60,6 +60,8 @@ export const getTypeOfAircraft = (aircraft) => {
     return "A330";
   } else if (aircraft.includes("A34")) {
     return "A340";
+  } else if (aircraft.includes("A30")) {
+    return "A300";
   } else if (aircraft.includes("A3")) {
     return "A3XX";
   } else if (aircraft.includes("B74")) {

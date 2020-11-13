@@ -93,15 +93,14 @@ app.use("/api/flightVatStats", (req, res) => {
   };
 
   request(options, (error, response, body) => {
-
     if (body) {
       const parsed = JSON.parse(body);
 
       const selectedFlight = parsed.results
-        .filter((flight) => flight.status === 1)
+        .find((flight) => flight.status === 1)
 
       if (selectedFlight) {
-        return res.send(...selectedFlight);
+        return res.send(selectedFlight);
       }
 
       return res.send([])
@@ -120,6 +119,12 @@ app.use("/api/flight", (req, res) => {
   };
 
   request(options, (error, response, body) => {
+    console.log(error, body);
+    if (error) {
+      const errorParsed = JSON.parse(JSON.stringify(error));
+
+      console.log("ErrorParsed", errorParsed);
+    }
     body ? res.send(body) : res.send(null);
   });
 });
