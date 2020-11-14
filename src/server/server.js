@@ -119,12 +119,6 @@ app.use("/api/flight", (req, res) => {
   };
 
   request(options, (error, response, body) => {
-    console.log(error, body);
-    if (error) {
-      const errorParsed = JSON.parse(JSON.stringify(error));
-
-      console.log("ErrorParsed", errorParsed);
-    }
     body ? res.send(body) : res.send(null);
   });
 });
@@ -180,7 +174,7 @@ app.use("/api/decode-route", (req, res) => {
     method: "POST",
     form: { route: routeStr },
     headers: {
-      Authorization: `Basic ${process.env.ROUTE_TOKEN}`,
+      Authorization: `Basic ${process.env.ROUTE_TOKEN}`
     },
   };
 

@@ -36,7 +36,7 @@
     "d3-ease": "^1.0.6",
     "date-fns": "^2.15.0",
     "deck.gl": "^8.2.2",
-    "dotenv": "8.2.0",
+    "dotenv": "^8.2.0",
     "dotenv-expand": "5.1.0",
     "electron-is-dev": "^1.2.0",
     "eslint": "^6.6.0",
@@ -57,7 +57,6 @@
     "jest-resolve": "24.9.0",
     "jest-watch-typeahead": "0.4.2",
     "mini-css-extract-plugin": "0.9.0",
-    "nodemon": "^2.0.5",
     "optimize-css-assets-webpack-plugin": "5.0.3",
     "pnp-webpack-plugin": "1.6.4",
     "postcss-flexbugs-fixes": "4.1.0",
@@ -173,6 +172,7 @@
     "electron": "^9.0.5",
     "electron-builder": "^22.7.0",
     "node-sass": "^4.14.1",
+    "nodemon": "^2.0.6",
     "wait-on": "^5.0.1"
   }
 }
