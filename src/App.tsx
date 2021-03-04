@@ -215,9 +215,6 @@ function App() {
         }
       }
 
-      console.log({ firLayers });
-      console.log({ onlineFirKeys });
-
       // Loop through the active FIR Layers. If they're no longer active, then remove them from the map.
       for (const firKey of firLayers) {
         if (!onlineFirKeys.includes(firKey) && map.getLayer(`FIR-${firKey}`)) {
@@ -633,13 +630,12 @@ function App() {
 
         // Render the Weather Layer on render. Otherwise, update it.
         if (isInit) {
-          map.on("load", () => {
-            drawWeatherLayer(map, timestamp);
+          drawWeatherLayer(map, timestamp);
 
-            setLatestWeatherTimestamp(timestamp);
-          });
+          setLatestWeatherTimestamp(timestamp);
         } else {
           if (latestWeatherTimestamp && latestWeatherTimestamp !== timestamp) {
+            console.log("update the layer.");
             map.removeLayer("weatherLayer").removeSource("weatherLayer");
 
             drawWeatherLayer(map, timestamp);
@@ -1174,7 +1170,7 @@ function App() {
         <img
           onClick={() => setToggleNavigationMenu(!toggleNavigationMenu)}
           className="menu"
-          src="/icons/menu-icon.png"
+          src="icons/menu-icon.png"
           alt="Navigation Menu"
         />
       }

@@ -22,6 +22,7 @@ function createWindow() {
       nodeIntegration: true,
       webSecurity: false,
     },
+    // icon: `${path.join(__dirname, "../build/icons/airplaine-icon.webp")}`,
   });
 
   // and load the index.html of the app.

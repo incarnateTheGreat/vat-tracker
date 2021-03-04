@@ -9,8 +9,6 @@ export const FlightData = ({
   selectAirportFunc,
 }) => {
   if (selectedFlight && displaySelectedFlight && checkStillActive()) {
-    console.log({ selectedFlight });
-
     const {
       callsign,
       real_name,
@@ -109,7 +107,7 @@ export const FlightData = ({
               </div>
               <img
                 className="grid-container-item-icao-plane-to"
-                src="../images/airplane-icon.png"
+                src="images/airplane-icon.png"
                 alt="To"
               />
               <div>{dest_airport_name}</div>
@@ -165,7 +163,7 @@ export const FlightData = ({
                 className="info-window-details-flight-status-line-progress"
                 style={{ width: percentageCompleted }}
               >
-                <img src="../images/airplane-icon.png" alt={callsign} />
+                <img src="images/airplane-icon.png" alt={callsign} />
               </span>
             </span>
           </div>

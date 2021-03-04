@@ -12,23 +12,25 @@ export const AirportData = ({
 }) => {
   const [tabData, setTabData] = useState<object[]>([]);
   const [activeTab, setActiveTab] = useState<number>(0);
-  const [departuresSortDirection, setDeparturesSortDirection] = useState<
-    string
-  >("ASC");
+  const [
+    departuresSortDirection,
+    setDeparturesSortDirection,
+  ] = useState<string>("ASC");
   const [arrivalsSortDirection, setArrivalsSortDirection] = useState<string>(
     "ASC"
   );
   const [departuresSortKey, setDeparturesSortKey] = useState<string>(
     "callsign"
   );
-  const [controllersSortDirection, setControllersSortDirection] = useState<
-    string
-  >("ASC");
+  const [
+    controllersSortDirection,
+    setControllersSortDirection,
+  ] = useState<string>("ASC");
   const [arrivalsSortKey, setArrivalsSortKey] = useState<string>("callsign");
   const [controllersSortKey, setControllersSortKey] = useState<string>(
     "callsign"
   );
-  const iconPath = "./images/weather-icons";
+  const iconPath = "images/weather-icons";
 
   // Parse the Airport Data, specifically for the Aircraft Type.
   const handleAirportData = (flightData) => {
