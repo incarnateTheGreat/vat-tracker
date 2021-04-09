@@ -111,6 +111,21 @@ export interface IFlightVatStats extends IVatsimFlight {
   realname: string;
   clienttype: string;
   frequency: string;
+  flight_rules: string;
+  aircraft: string;
+  aircraft_faa: string;
+  aircraft_short: string;
+  departure: string;
+  arrival: string;
+  alternate: string;
+  cruise_tas: string;
+  altitude: string;
+  deptime: string;
+  enroute_time: string;
+  fuel_time: string;
+  remarks: string;
+  route: string;
+  revision_id: string;
 }
 
 export interface IFirs {

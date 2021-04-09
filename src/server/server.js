@@ -45,39 +45,49 @@ app.use("/api/metar", (req, res) => {
 
 app.use("/api/vatsimJson", (req, res) => {
   const options = {
-    url: "http://eu.data.vatsim.net/vatsim-data.json",
+    url: "https://data.vatsim.net/v3/vatsim-data.json",
     method: "GET",
   };
 
   request(options, (error, response, body) => {
     if (body) {
-      const parsed = JSON.parse(body);
+      try {
+        const parsed = JSON.parse(body);
 
-      const flights = parsed.clients
-        .filter((user) => user.clienttype !== "ATC")
-        .reduce((r, acc) => {
-          r.push(acc);
+        const flights = parsed.pilots
+          .reduce((r, acc) => {
+            r.push(acc);
+  
+            return r;
+          }, [])
+          .sort((a,b) => {
+            return a['callsign'].localeCompare(b['callsign']);
+          })
+  
+        const controllers = parsed.controllers
+          .reduce((r, acc) => {
+            r.push(acc);
+  
+            return r;
+          }, [])
+          .sort((a,b) => {
+            return a['callsign'].localeCompare(b['callsign']);
+          })
 
-          return r;
-        }, [])
-        .sort((a,b) => {
-          return a['callsign'].localeCompare(b['callsign']);
-        })
+        return res.send({flights, controllers});
+    } catch(e) {
+      console.log(e);
+      // app.listen(8000, () => {
+        console.log("Express server CLOSED due to Error.");
+        app.close();
+      // });
 
-      const controllers = parsed.clients
-        .filter((user) => user.clienttype === "ATC")
-        .reduce((r, acc) => {
-          acc["isController"] = true;
+      // app.listen(8000, () => {
+        console.log("Express server RESTARTED");
+      // });
+    }
 
-          r.push(acc);
-
-          return r;
-        }, [])
-        .sort((a,b) => {
-          return a['callsign'].localeCompare(b['callsign']);
-        })
-
-      return res.send({flights, controllers});
+      
     } else {
       res.send([]);
     }
@@ -151,7 +161,7 @@ app.use("/api/airport", (req, res) => {
 
 app.use("/api/firs", (req, res) => {
   const options = {
-    url: `https://simaware.ca/api/onlineatc`,
+    url: `https://simaware.ca/livedata/onlineatc.json`,
     method: "GET",
   };
 

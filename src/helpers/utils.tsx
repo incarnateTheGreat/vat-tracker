@@ -31,7 +31,7 @@ export const getTypeOfAircraftIcon = (aircraft = "") => {
   }
 };
 
-export const getTypeOfAircraft = (aircraft) => {
+export const getTypeOfAircraft = (aircraft = "") => {
   if (aircraft.includes("B74")) {
     return "B747";
   } else if (aircraft.includes("B737")) {
@@ -87,7 +87,7 @@ export const getTypeOfAircraft = (aircraft) => {
   }
 };
 
-export const getTypeOfAircraftSelected = (aircraft) => {
+export const getTypeOfAircraftSelected = (aircraft = "") => {
   if (aircraft.includes("B74")) {
     return "images/airplane-747-icon-selected.png";
   } else if (
@@ -142,9 +142,30 @@ export const assembleClusterData = (data) => {
   });
 };
 
+export const assembleFlightData = (data) => {
+  return data.map((flight) => {
+    return {
+      ...flight,
+      ...flight.flight_plan,
+      current_altitude: flight.altitude,
+      current_heading: flight.heading,
+      current_latitude: flight.latitude,
+      current_longitude: flight.longitude,
+      current_ground_speed: flight.groundspeed,
+      real_name: flight.name,
+      planned_aircraft: flight.aircraft_short ?? flight.aircraft_faa ?? "N/A",
+      planned_dep_airport__icao: flight.departure ?? "N/A",
+      planned_dest_airport__icao: flight.arrival ?? "N/A",
+      cluster: false,
+      combined: `${flight.callsign} (${flight.name})`,
+      type: "PILOT",
+    };
+  });
+};
+
 export const assembleClusterDataTest = (data) => {
   return data.map((flight) => {
-    const name = flight.realname;
+    const name = flight.name;
     const current_longitude = flight.longitude;
     const current_latitude = flight.latitude;
 
@@ -152,17 +173,19 @@ export const assembleClusterDataTest = (data) => {
       type: "Feature",
       properties: {
         ...flight,
+        ...flight.flight_plan,
         current_altitude: flight.altitude,
         current_heading: flight.heading,
         current_latitude: flight.latitude,
         current_longitude: flight.longitude,
         current_ground_speed: flight.groundspeed,
-        real_name: flight.realname,
-        planned_aircraft: flight.planned_aircraft ?? "N/A",
-        planned_dep_airport__icao: flight.planned_depairport,
-        planned_dest_airport__icao: flight.planned_destairport,
+        real_name: flight.name,
+        planned_aircraft: flight.aircraft_short ?? flight.aircraft_faa ?? "N/A",
+        planned_dep_airport__icao: flight.departure ?? "N/A",
+        planned_dest_airport__icao: flight.arrival ?? "N/A",
         cluster: false,
         combined: `${flight.callsign} (${name})`,
+        type: "PILOT",
       },
       geometry: {
         type: "Point",

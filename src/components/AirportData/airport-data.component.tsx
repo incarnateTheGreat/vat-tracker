@@ -35,7 +35,7 @@ export const AirportData = ({
   // Parse the Airport Data, specifically for the Aircraft Type.
   const handleAirportData = (flightData) => {
     return flightData.map((flight) => {
-      flight["planned_aircraft"] = getTypeOfAircraft(flight.planned_aircraft);
+      flight["planned_aircraft"] = getTypeOfAircraft(flight.aircraft_short);
 
       return flight;
     });
@@ -50,6 +50,8 @@ export const AirportData = ({
   const [controllers, setControllers] = useState<IFlightVatStats[]>(
     selectedAirport.controllers || []
   );
+
+  console.log(departures);
 
   // Sort the Departures data.
   const sortDepartureData = (sortDirection = "ASC", sortKey = "callsign") => {
@@ -141,7 +143,7 @@ export const AirportData = ({
                     onClick={() =>
                       sortDepartureData(
                         handleSortDirection(departuresSortDirection),
-                        "realname"
+                        "real_name"
                       )
                     }
                   >
@@ -152,7 +154,7 @@ export const AirportData = ({
                     onClick={() => {
                       sortDepartureData(
                         handleSortDirection(departuresSortDirection),
-                        "planned_destairport"
+                        "arrival"
                       );
                     }}
                   >
@@ -163,7 +165,7 @@ export const AirportData = ({
                     onClick={() => {
                       sortDepartureData(
                         handleSortDirection(departuresSortDirection),
-                        "planned_aircraft"
+                        "aircraft_short"
                       );
                     }}
                   >
@@ -181,13 +183,13 @@ export const AirportData = ({
                         <span>{departure.callsign}</span>
                       </div>
                       <div className="grid-container-airport-flights-departures-departure">
-                        <span>{departure.realname}</span>
+                        <span>{departure.real_name}</span>
                       </div>
                       <div className="grid-container-airport-flights-departures-departure">
-                        {departure.planned_destairport}
+                        {departure.arrival}
                       </div>
                       <div className="grid-container-airport-flights-departures-departure">
-                        {departure.planned_aircraft}
+                        {departure.aircraft_short}
                       </div>
                     </div>
                   ))
@@ -224,7 +226,7 @@ export const AirportData = ({
                     onClick={() => {
                       sortArrivalsData(
                         handleSortDirection(arrivalsSortDirection),
-                        "realname"
+                        "real_name"
                       );
                     }}
                   >
@@ -235,7 +237,7 @@ export const AirportData = ({
                     onClick={() => {
                       sortArrivalsData(
                         handleSortDirection(arrivalsSortDirection),
-                        "planned_depairport"
+                        "departure"
                       );
                     }}
                   >
@@ -257,7 +259,7 @@ export const AirportData = ({
                     onClick={() => {
                       sortArrivalsData(
                         handleSortDirection(arrivalsSortDirection),
-                        "planned_aircraft"
+                        "aircraft_short"
                       );
                     }}
                   >
@@ -275,16 +277,16 @@ export const AirportData = ({
                         {arrival.callsign}
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
-                        {arrival.realname}
+                        {arrival.real_name}
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
-                        {arrival.planned_depairport}
+                        {arrival.departure}
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
                         {arrival.dtg} NMI
                       </div>
                       <div className="grid-container-airport-flights-arrivals-arrival">
-                        {arrival.planned_aircraft}
+                        {arrival.aircraft_short}
                       </div>
                     </div>
                   ))
@@ -321,7 +323,7 @@ export const AirportData = ({
                     onClick={() => {
                       sortControllersData(
                         handleSortDirection(controllersSortDirection),
-                        "realname"
+                        "real_name"
                       );
                     }}
                   >
@@ -349,7 +351,7 @@ export const AirportData = ({
                         {controller.callsign}
                       </div>
                       <div className="grid-container-airport-flights-controllers-arrival">
-                        {controller.realname}
+                        {controller.real_name}
                       </div>
                       <div className="grid-container-airport-flights-controllers-arrival">
                         {controller.frequency}

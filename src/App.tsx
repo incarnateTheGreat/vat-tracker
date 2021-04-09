@@ -42,6 +42,7 @@ import {
 
 // Utilities
 import {
+  assembleFlightData,
   assembleClusterDataTest,
   drawWeatherLayer,
   getTypeOfAircraftIcon,
@@ -107,8 +108,8 @@ function App() {
 
     if (typeof flights === "object" && Object.keys(flights).length > 0) {
       setControllers(controllers);
-      setFlightData(flights);
-      setClusterData(assembleClusterDataTest([...flights, ...controllers]));
+      setFlightData(assembleFlightData([...flights]));
+      setClusterData(assembleClusterDataTest([...flights]));
     } else {
       setTimeout(() => {
         setFlightData(null);
@@ -217,7 +218,7 @@ function App() {
 
       // Loop through the active FIR Layers. If they're no longer active, then remove them from the map.
       for (const firKey of firLayers) {
-        if (!onlineFirKeys.includes(firKey) && map.getLayer(`FIR-${firKey}`)) {
+        if (!onlineFirKeys.includes(firKey)) {
           map.removeLayer(`FIR-${firKey}`).removeSource(`FIR-${firKey}`);
           map
             .removeLayer(`FIR-${firKey}-LINE`)
@@ -261,10 +262,6 @@ function App() {
 
   // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
   const indicateFlightInCluster = (clusterObj) => {
-    // console.log(clusterObj);
-
-    // console.log(clusterObj.properties.cluster_id);
-
     const flightsInClusters = supercluster.getLeaves(
       clusterObj.properties.cluster_id,
       Infinity
@@ -279,13 +276,12 @@ function App() {
   const handleIcon = (flightData: ICluster, isHover?: boolean) => {
     let aircraftIcon;
 
-    if (flightData.properties.isController) {
-      aircraftIcon = getTypeOfAircraftIcon("controller");
-    } else {
-      aircraftIcon = getTypeOfAircraftIcon(
-        flightData.properties.planned_aircraft
-      );
-    }
+    // TODO: Handle Controllers with new API.
+    // if (flightData.properties.isController) {
+    //   aircraftIcon = getTypeOfAircraftIcon("controller");
+    // } else {
+    aircraftIcon = getTypeOfAircraftIcon(flightData.properties.aircraft_short);
+    // }
 
     // If a Flight is selected, assign the Selected Airplane Icon to it.
     if (
@@ -293,7 +289,7 @@ function App() {
       (isHover && !flightData.properties.isController)
     ) {
       aircraftIcon = getTypeOfAircraftSelected(
-        flightData.properties.planned_aircraft
+        flightData.properties.aircraft_short
       );
     }
 
@@ -635,7 +631,6 @@ function App() {
           setLatestWeatherTimestamp(timestamp);
         } else {
           if (latestWeatherTimestamp && latestWeatherTimestamp !== timestamp) {
-            console.log("update the layer.");
             map.removeLayer("weatherLayer").removeSource("weatherLayer");
 
             drawWeatherLayer(map, timestamp);
@@ -663,9 +658,9 @@ function App() {
     isInit: boolean = true,
     location?
   ) => {
-    const findFlight = flightData?.find(
-      (flight) => flight.callsign === callsign
-    );
+    const findFlight = flightData?.find((flight) => {
+      return flight.callsign === callsign;
+    });
 
     if (findFlight) {
       const flightFromVatStatus = await getFlightVatStats(findFlight.callsign);
@@ -806,12 +801,12 @@ function App() {
 
     // Get the Departures for the Selected Airport from the Departures data.
     const departures = flightData?.filter(
-      (departure) => departure.planned_depairport === airportData.icao
+      (departure) => departure.departure === airportData.icao
     );
 
     // Get the Arrivals for the Selected Airport from the Active Flight data.
     const arrivals = flightData
-      ?.filter((arrival) => arrival.planned_destairport === airportData.icao)
+      ?.filter((arrival) => arrival.arrival === airportData.icao)
       .map((arrival) => {
         arrival.dtg = handleDTG([
           [arrival.latitude, arrival.longitude],
@@ -859,7 +854,7 @@ function App() {
     setDisplaySelectedAirport(true);
   };
 
-  // Handle the data calls to display Flights, FIR data, and Weather.
+  // Initially handle the data calls to display Flights, FIR data, and Weather.
   const handleDataCalls = async () => {
     await handleGetFlightData();
     await handleGetFIRsData();
@@ -870,7 +865,7 @@ function App() {
   // Continue to retrieve Flight and Weather data every 15 seconds.
   useInterval(() => {
     handleGetFlightData();
-    drawOnlineFIRs(onlineFirs);
+    handleGetFIRsData();
     getUpdatedWeather();
     getUpdatedSelectedFlight();
 
@@ -959,15 +954,16 @@ function App() {
         );
       } else {
         const {
+          aircraft_short,
+          arrival,
           callsign,
           current_altitude,
           current_latitude,
           current_longitude,
           current_ground_speed,
+          departure,
           real_name,
-          planned_aircraft,
-          planned_dep_airport__icao,
-          planned_dest_airport__icao,
+          transponder,
         } = displayPopup.properties;
 
         popup = (
@@ -981,13 +977,14 @@ function App() {
             <h3>{callsign}</h3>
             <h4>{real_name}</h4>
             <div className="mapboxgl-popup-route">
-              <span>{planned_dep_airport__icao}</span>
+              <span>{departure}</span>
               <span className="mapboxgl-popup-route-arrow">&#10132;</span>
-              <span>{planned_dest_airport__icao}</span>
+              <span>{arrival}</span>
             </div>
-            <div>{getTypeOfAircraft(planned_aircraft)}</div>
+            <div>{getTypeOfAircraft(aircraft_short)}</div>
             <div>{current_altitude} ft.</div>
             <div>{current_ground_speed} kts.</div>
+            <div>{transponder}</div>
           </Popup>
         );
       }
@@ -1089,6 +1086,7 @@ function App() {
       {flightData &&
         clusters.map((clusterObj: ICluster) => {
           const [longitude, latitude] = clusterObj.geometry.coordinates;
+
           const {
             cluster: isCluster,
             point_count: pointCount,
