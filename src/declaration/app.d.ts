@@ -138,6 +138,7 @@ export interface IFirs {
 
 export interface IFlightVatStatsDetails {
   id?: number;
+  detail?: string;
   data_points?: [
     {
       id?: number;

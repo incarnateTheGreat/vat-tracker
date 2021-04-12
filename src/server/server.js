@@ -71,10 +71,20 @@ app.use("/api/vatsimJson", (req, res) => {
             return r;
           }, [])
           .sort((a,b) => {
+            return a['callsign'].localeCompare(b['']);
+          })
+
+          const prefiles = parsed.prefiles
+          .reduce((r, acc) => {
+            r.push(acc);
+  
+            return r;
+          }, [])
+          .sort((a,b) => {
             return a['callsign'].localeCompare(b['callsign']);
           })
 
-        return res.send({flights, controllers});
+        return res.send({flights, controllers, prefiles});
     } catch(e) {
       console.log(e);
       // app.listen(8000, () => {
@@ -103,7 +113,7 @@ app.use("/api/flightVatStats", (req, res) => {
   };
 
   request(options, (error, response, body) => {
-    if (body) {
+    if (body && response.statusCode === 200) {
       const parsed = JSON.parse(body);
 
       const selectedFlight = parsed.results

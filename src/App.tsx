@@ -7,6 +7,7 @@ import ReactMapGL, {
   Popup,
 } from "react-map-gl";
 import useSupercluster from "use-supercluster";
+import { ToastContainer, toast } from "react-toastify";
 import * as d3 from "d3-ease";
 import { format } from "date-fns";
 import { getTypeOfAircraft, handleDTG } from "./helpers/utils";
@@ -670,6 +671,13 @@ function App() {
           flightFromVatStatus.id
         );
 
+        // Display the Toast error message.
+        if (selectedFlightData.detail === "Not found.") {
+          toast.error(`${findFlight.callsign} has no available information.`);
+
+          return;
+        }
+
         // Assign Location data for Transition to Flight Location if there is no passed Location parameter.
         if (!location) {
           const {
@@ -976,11 +984,15 @@ function App() {
           >
             <h3>{callsign}</h3>
             <h4>{real_name}</h4>
-            <div className="mapboxgl-popup-route">
-              <span>{departure}</span>
-              <span className="mapboxgl-popup-route-arrow">&#10132;</span>
-              <span>{arrival}</span>
-            </div>
+            {departure && arrival ? (
+              <div className="mapboxgl-popup-route">
+                <span>{departure}</span>
+                <span className="mapboxgl-popup-route-arrow">&#10132;</span>
+                <span>{arrival}</span>
+              </div>
+            ) : (
+              <div className="mapboxgl-popup-route">Route TBD</div>
+            )}
             <div>{getTypeOfAircraft(aircraft_short)}</div>
             <div>{current_altitude} ft.</div>
             <div>{current_ground_speed} kts.</div>
@@ -1217,6 +1229,18 @@ function App() {
       {displayPopupDataView()}
 
       {showPopup && firPopup()}
+
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
     </ReactMapGL>
   );
 }
