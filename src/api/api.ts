@@ -87,6 +87,20 @@ export const getFIRs = async () => {
   );
 };
 
+// Get all ATC connections.
+export const getATC = async () => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/atc`).then(
+    (res) => res.data
+  );
+};
+
+// Get all Approach coonections..
+export const getApproach = async () => {
+  return await axios(`${process.env.REACT_APP_LOCALHOST}/api/approach`).then(
+    (res) => res.data
+  );
+};
+
 // Get Flight Data from Vat-Stats.
 export const getFlight = async (id) => {
   return await axios(`${process.env.REACT_APP_LOCALHOST}/api/flight`, {

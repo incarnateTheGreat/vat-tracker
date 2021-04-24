@@ -31,3 +31,51 @@
     background-color: #de3a1f;
   }
 }
+
+.atc-marker {
+  position: relative;
+  z-index: 5;
+
+  &-container {
+    background-color: $clr-white;
+    border-radius: 6px;
+    box-shadow: 0px 0px 1px 1px #0000001a;
+    cursor: pointer;
+    display: flex;
+    font-size: $size-8;
+  }
+
+  &-connection {
+    font-weight: bold;
+    padding: 5px;
+
+    &:last-child {
+      border-radius: 0 6px 6px 0;
+    }
+
+    &-TWR {
+      background-color: rgb(37, 37, 164);
+      color: $clr-white;
+    }
+
+    &-ATIS {
+      color: $clr-white;
+      background-color: rgb(0, 80, 0);
+    }
+
+    &-GND {
+      background-color: rgb(235, 153, 0);
+      color: $clr-white;
+    }
+
+    &-APP {
+      background-color: rgb(227, 203, 66);
+      color: $clr-white;
+    }
+
+    &-DEL {
+      background-color: rgb(0, 0, 0);
+      color: $clr-white;
+    }
+  }
+}

@@ -74,7 +74,7 @@ app.use("/api/vatsimJson", (req, res) => {
             return a['callsign'].localeCompare(b['']);
           })
 
-          const prefiles = parsed.prefiles
+        const prefiles = parsed.prefiles
           .reduce((r, acc) => {
             r.push(acc);
   
@@ -172,6 +172,28 @@ app.use("/api/airport", (req, res) => {
 app.use("/api/firs", (req, res) => {
   const options = {
     url: `https://simaware.ca/livedata/onlineatc.json`,
+    method: "GET",
+  };
+
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
+
+app.use("/api/atc", (req, res) => {
+  const options = {
+    url: `https://simaware.ca/livedata/locals.json`,
+    method: "GET",
+  };
+
+  request(options, (error, response, body) => {
+    body ? res.send(body) : res.send(null);
+  });
+});
+
+app.use("/api/approach", (req, res) => {
+  const options = {
+    url: `https://simaware.ca/livedata/tracons.json`,
     method: "GET",
   };
 

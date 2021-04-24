@@ -10,12 +10,14 @@ import useSupercluster from "use-supercluster";
 import { ToastContainer, toast } from "react-toastify";
 import * as d3 from "d3-ease";
 import { format } from "date-fns";
-import { getTypeOfAircraft, handleDTG } from "./helpers/utils";
+import { handleDTG } from "./helpers/utils";
 
 // APIs
 import {
   fetchRoute,
   getAirport,
+  getApproach,
+  getATC,
   getDecodedFlightRoute,
   getMETAR,
   getTAF,
@@ -29,6 +31,7 @@ import {
 // Interfaces
 import {
   IAirport,
+  IATC,
   ICluster,
   IClusterDetails,
   IControllers,
@@ -68,6 +71,7 @@ function App() {
   const [flightData, setFlightData] = useState<IFlightVatStats[] | null>([]);
   const [controllers, setControllers] = useState<IControllers[] | null>([]);
   const [onlineFirs, setOnlineFirs] = useState<IFirs[]>([]);
+  const [atc, setATC] = useState<IATC[]>([]);
   const [clusterData, setClusterData] = useState<ICluster[]>([]);
   const [icaoData, setIcaoData] = useState<object[]>([]);
   const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
@@ -138,11 +142,11 @@ function App() {
       // Loop through the Online FIR Keys to determine what are currently rendered and what should be removed if no longer active.
       for (const fir of onlineFirKeys) {
         const { bounds, members, fir: firData } = onlineFirs[fir];
-        const { icao: firIcao, name, prefix } = firData;
+        const { name, prefix } = firData;
 
         const lineBoundaries: number[][] = [];
 
-        if (!map.getLayer(`FIR-${firIcao}`) && bounds?.length > 0) {
+        if (!map.getLayer(`FIR-${fir}`) && bounds?.length > 0) {
           // Extract and correct the Boundaries for the FIRs.
           const boundaries = bounds[0].reduce((r: object[], acc) => {
             const [lng, lat] = acc;
@@ -160,7 +164,7 @@ function App() {
 
           // Draw the polygon area.
           map.addLayer({
-            id: `FIR-${firIcao}`,
+            id: `FIR-${fir}`,
             type: "fill",
             source: {
               type: "geojson",
@@ -191,7 +195,7 @@ function App() {
 
           // Give the FIR Boundary a thicker border with a Line.
           map.addLayer({
-            id: `FIR-${firIcao}-LINE`,
+            id: `FIR-${fir}-LINE`,
             type: "line",
             source: {
               type: "geojson",
@@ -214,6 +218,20 @@ function App() {
               "line-opacity": 0.5,
             },
           });
+        } else {
+          // Update any properties in the FIR with the latest data.
+          const existingFIR = map.getSource(`FIR-${fir}`);
+
+          if (existingFIR) {
+            existingFIR.setData({
+              ...existingFIR._data,
+              properties: {
+                members: { ...members },
+                name,
+                prefix,
+              },
+            });
+          }
         }
       }
 
@@ -237,6 +255,39 @@ function App() {
 
     drawOnlineFIRs(data);
   }, [drawOnlineFIRs]);
+
+  // Get ATC & Approach data
+  const handleGetATCData = useCallback(async () => {
+    const atcDataRes = await getATC();
+    const approachDataRes = await getApproach();
+
+    // Get the Keys of both ATC and Approach.
+    const atcKeys = Object.keys(atcDataRes);
+    const approachKeys = Object.keys(approachDataRes);
+
+    // Find matching keys for both objects.
+    const atcAppConnections = atcKeys.filter((elem) =>
+      approachKeys.includes(elem)
+    );
+
+    // Update the ATC with the Approach data.
+    for (const atcConnection of atcAppConnections) {
+      atcDataRes[atcConnection].APP = approachDataRes[atcConnection].APP;
+    }
+
+    // for (const atcConnection in atcDataRes) {
+    //   const findController = controllers?.filter((controller) => {
+    //     return controller.callsign.includes(
+    //       atcDataRes[atcConnection].loc?.iata
+    //     );
+    //   });
+
+    //   // console.log(atcDataRes[atcConnection].loc?.iata, { findController });
+    //   // console.log(atcDataRes);
+    // }
+
+    setATC(atcDataRes);
+  }, [controllers]);
 
   // Click on a Cluster and zoom in to its active children.
   const handleClusterClick = (
@@ -329,7 +380,6 @@ function App() {
       );
 
       // Draw out the Polyline route, but only if the service successfully returns data.
-      // if (decodedFlightRoute.encodedPolyline) {
       const routeData = await fetchRoute(decodedFlightRoute.id);
 
       drawPlannedRoute(
@@ -337,7 +387,6 @@ function App() {
         location,
         transitionToFlightLoc
       );
-      // }
     }
 
     if (completed_route) {
@@ -675,6 +724,8 @@ function App() {
         if (selectedFlightData.detail === "Not found.") {
           toast.error(`${findFlight.callsign} has no available information.`);
 
+          setSelectedFlight(null);
+
           return;
         }
 
@@ -688,7 +739,7 @@ function App() {
           location = { latitude, longitude };
         }
 
-        setSelectedFlight(selectedFlightData);
+        setSelectedFlight({ ...selectedFlightData, ...findFlight });
 
         await getRoute(
           location,
@@ -866,6 +917,7 @@ function App() {
   const handleDataCalls = async () => {
     await handleGetFlightData();
     await handleGetFIRsData();
+    await handleGetATCData();
     await getUpdatedWeather(true);
     setLoading(false);
   };
@@ -874,13 +926,14 @@ function App() {
   useInterval(() => {
     handleGetFlightData();
     handleGetFIRsData();
+    handleGetATCData();
     getUpdatedWeather();
     getUpdatedSelectedFlight();
 
     if (setLoading) {
       setLoading(false);
     }
-  }, 15000);
+  }, 7500);
 
   // Get the total number of connections.
   const getTotalConnections = () => {
@@ -976,27 +1029,34 @@ function App() {
 
         popup = (
           <Popup
+            className="mapboxgl-popup-flight"
             anchor="right"
             closeButton={false}
             longitude={current_longitude}
             latitude={current_latitude}
             offsetLeft={-10}
           >
-            <h3>{callsign}</h3>
-            <h4>{real_name}</h4>
-            {departure && arrival ? (
-              <div className="mapboxgl-popup-route">
-                <span>{departure}</span>
-                <span className="mapboxgl-popup-route-arrow">&#10132;</span>
-                <span>{arrival}</span>
+            <div className="mapboxgl-popup-flight-body">
+              <h2>{callsign}</h2>
+              <div className="mapboxgl-popup-flight-body-container">
+                <h4>{real_name}</h4>
+                {departure && arrival ? (
+                  <div className="mapboxgl-popup-flight-body-container-route">
+                    <span>{departure}</span>
+                    <span className="mapboxgl-popup-flight-body-container-route-arrow">
+                      &#10132;
+                    </span>
+                    <span>{arrival}</span>
+                  </div>
+                ) : (
+                  <div className="mapboxgl-popup-route">Route N/A</div>
+                )}
+                <div>{aircraft_short}</div>
+                <div>{current_altitude} ft.</div>
+                <div>{current_ground_speed} kts.</div>
+                <div>{transponder}</div>
               </div>
-            ) : (
-              <div className="mapboxgl-popup-route">Route TBD</div>
-            )}
-            <div>{getTypeOfAircraft(aircraft_short)}</div>
-            <div>{current_altitude} ft.</div>
-            <div>{current_ground_speed} kts.</div>
-            <div>{transponder}</div>
+            </div>
           </Popup>
         );
       }
@@ -1016,6 +1076,8 @@ function App() {
       } = showPopup;
 
       const parseMemberData = JSON.parse(firResp.properties.members);
+      const firName = firResp.properties.name;
+
       const memberData: any = Object.values(parseMemberData);
 
       // Get the Frequency of the FIR Controller.
@@ -1036,13 +1098,17 @@ function App() {
           onClose={() => setShowPopup(null)}
         >
           <div className="mapboxgl-popup-content-interior">
-            {memberData.map((member, i) => (
-              <div key={i}>
-                <span>{member.name}</span>
-                <span>{member.callsign}</span>
-                <span>{getFrequency(member.callsign)}</span>
-              </div>
-            ))}
+            <h3>{firName}</h3>
+            <div className="firPopup">
+              {memberData.map((member, i) => (
+                <div className="firPopup-body" key={i}>
+                  <span>{member.callsign}</span>
+                  <span className="firPopup-body-username">{member.name}</span>
+                  <span>{getFrequency(member.callsign)}</span>
+                  <span>{member.time_online}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </Popup>
       );
@@ -1095,6 +1161,66 @@ function App() {
       }}
       ref={mapRef}
     >
+      {atc &&
+        Object.keys(atc).map((atcICAO) => {
+          const { lat, lon } = atc[atcICAO].loc;
+
+          // Return the ATC connections as HTML elements for rendering. Remove any false data.
+          const atcConnections = Object.keys(atc[atcICAO])
+            .sort((a, b) => a.localeCompare(b))
+            .map((key) => {
+              return (
+                key !== "loc" && (
+                  <span
+                    className={`atc-marker-connection atc-marker-connection-${key}`}
+                    key={`atc-marker-${key}`}
+                  >
+                    {key}
+                  </span>
+                )
+              );
+            })
+            .filter((e) => e);
+
+          // Assemble the Display Pill with the ICAO followed by the ATC connections.
+          const displayPill = [
+            <span
+              key="atc-marker-icao"
+              className="atc-marker-connection atc-marker-connection-icao"
+            >
+              {atcICAO}
+            </span>,
+            ...atcConnections,
+          ];
+
+          return (
+            <Marker
+              className="atc-marker"
+              key={`ATC-${atcICAO}`}
+              latitude={Number(lat)}
+              longitude={Number(lon)}
+            >
+              <div
+                className="atc-marker-container"
+                onClick={() => {
+                  const findControllersViaICAO = controllers?.filter(
+                    (controller) => {
+                      return (
+                        controller.callsign.includes(atc[atcICAO].loc.icao) ||
+                        controller.callsign.includes(atc[atcICAO].loc.iata)
+                      );
+                    }
+                  );
+
+                  console.log(findControllersViaICAO);
+                }}
+              >
+                {displayPill.map((e) => e)}
+              </div>
+            </Marker>
+          );
+        })}
+
       {flightData &&
         clusters.map((clusterObj: ICluster) => {
           const [longitude, latitude] = clusterObj.geometry.coordinates;

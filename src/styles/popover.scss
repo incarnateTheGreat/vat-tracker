@@ -1,37 +1,90 @@
 .mapboxgl-popup {
   font-size: $size-14;
-  z-index: 1;
+  z-index: 5;
 
-  &-content {
-    min-width: 250px;
+  &-flight {
+    &-body {
+      background-color: $clr-white;
+      border-radius: 6px;
+      min-width: 260px;
 
-    &-interior {
-      padding: 5px 0 0;
+      h2 {
+        background-color: #2b96ff;
+        border-radius: 6px 6px 0 0;
+        color: $clr-white;
+        padding: 10px;
 
-      div {
         display: flex;
+        flex-direction: row;
         justify-content: space-between;
       }
 
-      span {
-        font-weight: bold;
+      &-container {
+        font-size: $size-16;
+        padding: 6px 10px;
 
-        &:first-child {
-          display: block;
-          font-weight: normal;
-          overflow: hidden;
-          text-overflow: ellipsis;
+        &-route {
+          display: flex;
+          flex-direction: row;
+          font-weight: 600;
+
+          &-arrow {
+            padding: 0 5px;
+          }
         }
       }
     }
   }
 
-  &-route {
-    display: flex;
-    flex-direction: row;
+  &-close-button {
+    color: $clr-white;
+  }
 
-    &-arrow {
-      padding: 0 5px;
+  &-content {
+    background-color: transparent !important;
+    border-radius: 0 0 6px 6px !important;
+    padding: 0 !important;
+
+    &-interior {
+      h3 {
+        background-color: #2b96ff;
+        border-radius: 6px 6px 0 0;
+        color: $clr-white;
+        padding: 10px;
+      }
+
+      .firPopup {
+        background-color: $clr-white;
+        display: table;
+        min-width: 360px;
+
+        &-body {
+          display: table-row;
+          padding: 10px;
+
+          &:nth-child(even) {
+            background-color: #e2f1ff;
+          }
+        }
+      }
+
+      span {
+        display: table-cell;
+        font-weight: normal;
+        padding: 10px;
+        text-align: center;
+        width: 25%;
+        white-space: nowrap;
+
+        &:first-child {
+          font-weight: bold;
+          text-align: left;
+        }
+
+        &:last-child {
+          text-align: right;
+        }
+      }
     }
   }
 }

@@ -136,6 +136,44 @@ export interface IFirs {
   oceanic: number;
 }
 
+export interface IATC {
+  ATIS: [ATCSection];
+  APP: [ATCSection];
+  TWR: [ATCSection];
+  GND: [ATCSection];
+  loc: {
+    callsign: string;
+    city: string;
+    country: string;
+    created_at: string;
+    fir: string;
+    iata: string;
+    icao: string;
+    id: number;
+    lat: string;
+    lon: string;
+    name: string;
+    state: string;
+    timezone: string;
+    updated_at: string;
+  };
+  name: string;
+}
+
+interface ATCSection {
+  atis: string;
+  callsign: string;
+  cid: number;
+  created_at: string;
+  def: string;
+  flag: number;
+  id: number;
+  name: string;
+  time_online: string;
+  type: string;
+  updated_at: string;
+}
+
 export interface IFlightVatStatsDetails {
   id?: number;
   detail?: string;
@@ -303,9 +341,20 @@ export interface IFirPopup {
   firResp: {
     properties: {
       members: string;
+      name: string;
     };
   };
 }
+
+// export interface IAppPopup {
+//   lngLat: number[];
+//   firResp: {
+//     properties: {
+//       members: string;
+//       name: string;
+//     };
+//   };
+// }
 
 export interface ICluster {
   geometry: {

@@ -10,6 +10,7 @@ export const FlightData = ({
 }) => {
   if (selectedFlight && displaySelectedFlight && checkStillActive()) {
     const {
+      aircraft_short,
       callsign,
       real_name,
       current_altitude,
@@ -115,7 +116,7 @@ export const FlightData = ({
             <div className="grid-container-item grid-container-item-lower-level">
               <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-aircraft-type">
                 <div>Equipment</div>
-                <div>{getTypeOfAircraft(planned_aircraft)}</div>
+                <div>{aircraft_short}</div>
               </div>
               <div className="grid-container-item grid-container-item-lower-level-element grid-container-item-altitude">
                 <div>Altitude</div>
