@@ -34,7 +34,8 @@ app.use("/api/metar", (req, res) => {
   const { icao } = req.query;
 
   const options = {
-    url: `https://api.metarreader.com/web/weather/${icao}`,
+    url: `https://api.checkwx.com/metar/${icao}/decoded`,
+    headers: {'X-API-Key': process.env.REACT_METAR_KEY},
     method: "GET",
   };
 
@@ -158,11 +159,16 @@ app.use("/api/airports", (req, res) => {
 
 app.use("/api/airport", (req, res) => {
   const { id } = req.query;
-
+  
   const options = {
-    url: `${VAT_STATUS_BASE_URL}/airports/${id}/`,
-    method: "GET",
+    url: `https://api.flightplandatabase.com/nav/airport/${id}`,
+    headers: {
+      Authorization: `Basic ${process.env.ROUTE_TOKEN}`
+    },
   };
+
+  // ****** DEVELOPMENT USE ONLY! REMOVE WHEN IN PRODUCTION *******
+  process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
   request(options, (error, response, body) => {
     body ? res.send(body) : res.send(null);

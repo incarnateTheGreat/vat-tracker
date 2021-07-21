@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { getTypeOfAircraft } from "../../helpers/utils";
 import { Tabs } from "../Tabs/tabs.component";
 import { IFlightVatStats } from "../../declaration/app";
+import { getMETAR } from "../../api/api";
 
 export const AirportData = ({
   deselectAirportFunc,
@@ -12,24 +13,19 @@ export const AirportData = ({
 }) => {
   const [tabData, setTabData] = useState<object[]>([]);
   const [activeTab, setActiveTab] = useState<number>(0);
-  const [
-    departuresSortDirection,
-    setDeparturesSortDirection,
-  ] = useState<string>("ASC");
-  const [arrivalsSortDirection, setArrivalsSortDirection] = useState<string>(
-    "ASC"
-  );
-  const [departuresSortKey, setDeparturesSortKey] = useState<string>(
-    "callsign"
-  );
-  const [
-    controllersSortDirection,
-    setControllersSortDirection,
-  ] = useState<string>("ASC");
+  const [departuresSortDirection, setDeparturesSortDirection] =
+    useState<string>("ASC");
+  const [arrivalsSortDirection, setArrivalsSortDirection] =
+    useState<string>("ASC");
+  const [departuresSortKey, setDeparturesSortKey] =
+    useState<string>("callsign");
+  const [controllersSortDirection, setControllersSortDirection] =
+    useState<string>("ASC");
   const [arrivalsSortKey, setArrivalsSortKey] = useState<string>("callsign");
-  const [controllersSortKey, setControllersSortKey] = useState<string>(
-    "callsign"
-  );
+  const [controllersSortKey, setControllersSortKey] =
+    useState<string>("callsign");
+
+  const [metarVal, setMetarVal] = useState();
   const iconPath = "images/weather-icons";
 
   // Parse the Airport Data, specifically for the Aircraft Type.
@@ -50,8 +46,6 @@ export const AirportData = ({
   const [controllers, setControllers] = useState<IFlightVatStats[]>(
     selectedAirport.controllers || []
   );
-
-  console.log(departures);
 
   // Sort the Departures data.
   const sortDepartureData = (sortDirection = "ASC", sortKey = "callsign") => {
@@ -116,6 +110,8 @@ export const AirportData = ({
     sortDepartureData(departuresSortDirection, departuresSortKey);
     sortArrivalsData(arrivalsSortDirection, arrivalsSortKey);
     sortControllersData(controllersSortDirection, controllersSortKey);
+
+    console.log(getMETAR(selectedAirport.ICAO));
   }, [arrivals, controllers, departures]);
 
   useEffect(() => {
@@ -418,14 +414,14 @@ export const AirportData = ({
 
   const getWeatherIcon = (code = "") => {
     // If there's no specific Weather data indicated, decypher it via the Clouds data.
-    if (code === "") {
-      const cloudStat =
-        selectedAirport.weather.main?.[0].Clouds?.[0].originalChunk || "N/A";
+    // if (code === "") {
+    //   const cloudStat =
+    //     selectedAirport.weather.main?.[0].Clouds?.[0].originalChunk || "N/A";
 
-      if (cloudStat.includes("FEW") || cloudStat.includes("SCT")) {
-        code = "FEW";
-      }
-    }
+    //   if (cloudStat.includes("FEW") || cloudStat.includes("SCT")) {
+    //     code = "FEW";
+    //   }
+    // }
 
     switch (code) {
       case "RA":
@@ -459,104 +455,95 @@ export const AirportData = ({
   };
 
   if (selectedAirport && displaySelectedAirport) {
-    const { country, municipality, icao, name, weather } = selectedAirport;
-    const { metar_raw, start_time } = weather;
+    const { regionName, name, ICAO, weather } = selectedAirport;
+    console.log({ selectedAirport });
+
+    const { METAR, TAF } = weather;
 
     let weatherOutput;
 
-    if (
-      Object.prototype.hasOwnProperty.call(weather, "main") &&
-      weather.main.length > 0
-    ) {
-      const {
-        Clouds,
-        Pressure = "N/A",
-        Temperature,
-        Visibility,
-        Wind,
-      } = weather.main[0];
-
-      weatherOutput = (
-        <>
-          <div className="grid-container-airport-weather">
-            <object
-              className="grid-container-airport-weather-icon"
-              type="image/svg+xml"
-              onLoad={(e) => {
-                const svg = e.currentTarget
-                  .getSVGDocument()
-                  ?.querySelector("svg");
-                svg?.setAttribute("fill", "#FFF");
-              }}
-              data={getWeatherIcon(
-                selectedAirport.weather.main?.[0].Weather?.[0].originalChunk ||
-                  ""
-              )}
-            >
-              &nbsp;
-            </object>
-          </div>
-          <div className="grid-container-airport-item --airport-item">
-            <div>
-              <div className="grid-container-airport-item-title">Location</div>
-              <div className="grid-container-airport-item-data">
-                {`${municipality}, ${country}`}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">Observed</div>
-              <div className="grid-container-airport-item-data">
-                {start_time
-                  ? format(new Date(start_time.dt), "MMM. dd, yyyy H.mm")
-                  : "N/A"}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">Wind</div>
-              <div className="grid-container-airport-item-data">
-                {Wind[0].decodeResult}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">
-                Temperature
-              </div>
-              <div className="grid-container-airport-item-data">
-                {Temperature[0].decodeResult}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">
-                Visibility
-              </div>
-              <div className="grid-container-airport-item-data">
-                {handleVisibility(
-                  Visibility,
-                  weather.main[0]["Prevailing Visibility"]
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">Clouds</div>
-              <div className="grid-container-airport-item-data">
-                {handleClouds(Clouds)}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">Altimeter</div>
-              <div className="grid-container-airport-item-data">
-                {Pressure[0].decodeResult}
-              </div>
-            </div>
-            <div>
-              <div className="grid-container-airport-item-title">METAR</div>
-              <div className="grid-container-airport-item-data --metar">
-                {metar_raw}
-              </div>
-            </div>
-          </div>
-        </>
-      );
+    if (METAR || TAF) {
+      // weatherOutput = (
+      //   <>
+      //     <div className="grid-container-airport-weather">
+      //       <object
+      //         className="grid-container-airport-weather-icon"
+      //         type="image/svg+xml"
+      //         onLoad={(e) => {
+      //           const svg = e.currentTarget
+      //             .getSVGDocument()
+      //             ?.querySelector("svg");
+      //           svg?.setAttribute("fill", "#FFF");
+      //         }}
+      //         data={getWeatherIcon(
+      //           selectedAirport.weather.main?.[0].Weather?.[0].originalChunk ||
+      //             ""
+      //         )}
+      //       >
+      //         &nbsp;
+      //       </object>
+      //     </div>
+      //     <div className="grid-container-airport-item --airport-item">
+      //       <div>
+      //         <div className="grid-container-airport-item-title">Location</div>
+      //         <div className="grid-container-airport-item-data">
+      //           {`${name}, ${regionName}`}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">Observed</div>
+      //         <div className="grid-container-airport-item-data">
+      //           {start_time
+      //             ? format(new Date(start_time.dt), "MMM. dd, yyyy H.mm")
+      //             : "N/A"}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">Wind</div>
+      //         <div className="grid-container-airport-item-data">
+      //           {Wind[0].decodeResult}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">
+      //           Temperature
+      //         </div>
+      //         <div className="grid-container-airport-item-data">
+      //           {Temperature[0].decodeResult}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">
+      //           Visibility
+      //         </div>
+      //         <div className="grid-container-airport-item-data">
+      //           {handleVisibility(
+      //             Visibility,
+      //             weather.main[0]["Prevailing Visibility"]
+      //           )}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">Clouds</div>
+      //         <div className="grid-container-airport-item-data">
+      //           {handleClouds(Clouds)}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">Altimeter</div>
+      //         <div className="grid-container-airport-item-data">
+      //           {Pressure[0].decodeResult}
+      //         </div>
+      //       </div>
+      //       <div>
+      //         <div className="grid-container-airport-item-title">METAR</div>
+      //         <div className="grid-container-airport-item-data --metar">
+      //           {METAR}
+      //         </div>
+      //       </div>
+      //     </div>
+      //   </>
+      // );
     }
 
     return (
@@ -564,7 +551,7 @@ export const AirportData = ({
         <div className="info-window-details">
           <div className="info-window-details-name">
             <div>
-              <h1>{icao}</h1>{" "}
+              <h1>{ICAO}</h1>{" "}
               <span className="info-window-details-divider">/</span>{" "}
               <h4>{name}</h4>
             </div>

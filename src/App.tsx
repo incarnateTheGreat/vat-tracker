@@ -77,17 +77,14 @@ function App() {
   const [selectedFlight, setSelectedFlight] = useState<IClusterDetails | null>(
     null
   );
-  const [displaySelectedFlight, setDisplaySelectedFlight] = useState<boolean>(
-    false
-  );
+  const [displaySelectedFlight, setDisplaySelectedFlight] =
+    useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedAirport, setSelectedAirport] = useState<IAirport | null>(null);
-  const [displaySelectedAirport, setDisplaySelectedAirport] = useState<boolean>(
-    false
-  );
-  const [toggleNavigationMenu, setToggleNavigationMenu] = useState<boolean>(
-    false
-  );
+  const [displaySelectedAirport, setDisplaySelectedAirport] =
+    useState<boolean>(false);
+  const [toggleNavigationMenu, setToggleNavigationMenu] =
+    useState<boolean>(false);
   const [latestWeatherTimestamp, setLatestWeatherTimestamp] = useState<
     number | null
   >(null);
@@ -290,27 +287,24 @@ function App() {
   }, [controllers]);
 
   // Click on a Cluster and zoom in to its active children.
-  const handleClusterClick = (
-    clusterObj: ICluster,
-    latitude: number,
-    longitude: number
-  ) => () => {
-    const expansionZoom = Math.min(
-      supercluster.getClusterExpansionZoom(clusterObj.properties.cluster_id),
-      20
-    );
+  const handleClusterClick =
+    (clusterObj: ICluster, latitude: number, longitude: number) => () => {
+      const expansionZoom = Math.min(
+        supercluster.getClusterExpansionZoom(clusterObj.properties.cluster_id),
+        20
+      );
 
-    setViewport({
-      ...viewport,
-      latitude,
-      longitude,
-      zoom: expansionZoom,
-      transitionInterpolator: new FlyToInterpolator({
-        speed: 1.5,
-      }),
-      transitionDuration: 500,
-    });
-  };
+      setViewport({
+        ...viewport,
+        latitude,
+        longitude,
+        zoom: expansionZoom,
+        transitionInterpolator: new FlyToInterpolator({
+          speed: 1.5,
+        }),
+        transitionDuration: 500,
+      });
+    };
 
   // If a Selected Flight is inside of a Cluster, highlight the Cluster to indicate this.
   const indicateFlightInCluster = (clusterObj) => {
@@ -646,7 +640,11 @@ function App() {
 
   // Navigate the view to the selected airport.
   const navigateToAirport = (location) => {
-    const { longitude, latitude } = location;
+    console.log(location);
+
+    const { lat: latitude, lon: longitude } = location;
+
+    console.log(latitude, longitude);
 
     const offset = 0.095;
 
@@ -731,10 +729,8 @@ function App() {
 
         // Assign Location data for Transition to Flight Location if there is no passed Location parameter.
         if (!location) {
-          const {
-            current_latitude: latitude,
-            current_longitude: longitude,
-          } = selectedFlightData;
+          const { current_latitude: latitude, current_longitude: longitude } =
+            selectedFlightData;
 
           location = { latitude, longitude };
         }
@@ -855,21 +851,26 @@ function App() {
   // Collect selected Airport data.
   const getAirportData = async (icao) => {
     let airportData = await getAirport(icao);
-    const taf: ITAF = await getTAF(airportData.icao);
-    const metar: IMetar = await getMETAR(airportData.icao);
+
+    const TAF = airportData?.weather?.TAF ?? "";
+    const METAR = airportData?.weather?.METAR ?? "";
+
+    console.log({ TAF });
+    console.log({ METAR });
+    console.log({ airportData });
 
     // Get the Departures for the Selected Airport from the Departures data.
     const departures = flightData?.filter(
-      (departure) => departure.departure === airportData.icao
+      (departure) => departure.departure === airportData.ICAO
     );
 
     // Get the Arrivals for the Selected Airport from the Active Flight data.
     const arrivals = flightData
-      ?.filter((arrival) => arrival.arrival === airportData.icao)
+      ?.filter((arrival) => arrival.arrival === airportData.ICAO)
       .map((arrival) => {
         arrival.dtg = handleDTG([
           [arrival.latitude, arrival.longitude],
-          [airportData.latitude, airportData.longitude],
+          [airportData.lat, airportData.lon],
         ]);
 
         return arrival;
@@ -880,7 +881,7 @@ function App() {
       return (
         controller.callsign
           .toLowerCase()
-          .indexOf(airportData.icao.substring(1).toLowerCase()) !== -1
+          .indexOf(airportData.ICAO.substring(1).toLowerCase()) !== -1
       );
     });
 
@@ -890,9 +891,8 @@ function App() {
       departures,
       controllers: controllersICAO,
       weather: {
-        ...taf,
-        ...metar["M"]["decoded"],
-        metar_raw: metar["M"]["report"],
+        TAF,
+        METAR,
       },
     });
   };
@@ -947,7 +947,7 @@ function App() {
   useEffect(() => {
     if (selectedAirport) {
       const updateSelectedAirportData = async () => {
-        const airportData = await getAirportData(selectedAirport.icao);
+        const airportData = await getAirportData(selectedAirport["ICAO"]);
 
         setSelectedAirport(airportData);
       };
@@ -992,13 +992,8 @@ function App() {
       let popup;
 
       if (displayPopup.properties.isController) {
-        const {
-          combined,
-          frequency,
-          latitude,
-          longitude,
-          time_logon,
-        } = displayPopup.properties;
+        const { combined, frequency, latitude, longitude, time_logon } =
+          displayPopup.properties;
 
         popup = (
           <Popup
@@ -1225,10 +1220,8 @@ function App() {
         clusters.map((clusterObj: ICluster) => {
           const [longitude, latitude] = clusterObj.geometry.coordinates;
 
-          const {
-            cluster: isCluster,
-            point_count: pointCount,
-          } = clusterObj.properties;
+          const { cluster: isCluster, point_count: pointCount } =
+            clusterObj.properties;
 
           if (isCluster) {
             return (

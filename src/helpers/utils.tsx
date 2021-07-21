@@ -153,9 +153,12 @@ export const assembleFlightData = (data) => {
       current_longitude: flight.longitude,
       current_ground_speed: flight.groundspeed,
       real_name: flight.name,
-      planned_aircraft: flight.aircraft_short ?? flight.aircraft_faa ?? "N/A",
-      planned_dep_airport__icao: flight.departure ?? "N/A",
-      planned_dest_airport__icao: flight.arrival ?? "N/A",
+      planned_aircraft:
+        flight?.flight_plan?.aircraft_short ??
+        flight?.flight_plan?.aircraft_faa ??
+        "N/A",
+      planned_dep_airport__icao: flight?.flight_plan?.departure ?? "N/A",
+      planned_dest_airport__icao: flight?.flight_plan?.arrival ?? "N/A",
       cluster: false,
       combined: `${flight.callsign} (${flight.name})`,
       type: "PILOT",

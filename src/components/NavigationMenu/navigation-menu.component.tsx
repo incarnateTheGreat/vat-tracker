@@ -66,7 +66,7 @@ export const NavigationMenu = ({
                 icaoData.find((icaoObj) => icaoObj["icao"] === callsign) || {};
 
               if (icaoRes) {
-                selectAirportFunc(icaoRes.id);
+                selectAirportFunc(icaoRes.icao);
               }
             }}
             placeholder="Search for ICAO"
