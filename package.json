@@ -1,5 +1,5 @@
 {
-  "name": "mapbox-vatsim",
+  "name": "VAT-Tracker",
   "version": "0.1.0",
   "build": {
     "appId": "mapbox.electron.garry",
